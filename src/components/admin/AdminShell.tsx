@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShieldCheck,
   DollarSign,
+  Handshake,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Dialog } from '@/components/ui/Dialog'
@@ -32,6 +33,7 @@ const NAV = [
   { href: '/admin/complaints', label: 'Complaints',       icon: MessageSquare },
   { href: '/admin/users',      label: 'Users',            icon: Users },
   { href: '/admin/staff',      label: 'Staff',            icon: ShieldCheck },
+  { href: '/admin/partners',   label: 'Partners',         icon: Handshake },
 ]
 
 interface AdminShellProps {

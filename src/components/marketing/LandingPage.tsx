@@ -578,6 +578,7 @@ function Footer() {
             <a href="#how-it-works" className={linkClass}>{t('how')}</a>
             <Link href="/about" className={linkClass}>{t('about')}</Link>
             <a href="#locations" className={linkClass}>{t('locations')}</a>
+            <Link href="/partners" className={linkClass}>{t('partners')}</Link>
             <Link href="/terms" className={linkClass}>{t('terms')}</Link>
             <Link href="/privacy" className={linkClass}>{t('privacy')}</Link>
           </nav>

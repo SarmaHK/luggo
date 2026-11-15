@@ -262,7 +262,9 @@
     "siteTitle": "Luggo | Luggage Storage Network in Sri Lanka",
     "siteDescription": "Luggo connects travellers with partner luggage storage hubs in Sri Lanka. Book online and pay by the hour.",
     "ogTitle": "Luggo — Luggage Storage Network in Sri Lanka",
-    "ogDescription": "Hourly luggage storage with partner hubs in Sri Lanka. Book online."
+    "ogDescription": "Hourly luggage storage with partner hubs in Sri Lanka. Book online.",
+    "partnersTitle": "Become a Luggo partner",
+    "partnersDescription": "Apply to host a Luggo luggage storage hub at your hotel, shop or café in Sri Lanka."
   },
   "Booking": {
     "pageTitle": "Book at {name}",
@@ -483,7 +485,8 @@
     "about": "About",
     "locations": "Locations",
     "terms": "Terms",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "partners": "Partner with us"
   },
   "Preview": {
     "confirmed": "Booking confirmed!",
@@ -676,5 +679,83 @@
     "redirecting": "Redirecting to PayHere…",
     "openingPayment": "Opening the secure payment page",
     "payEarlyFee": "Pay early drop-off fee (LKR {amount})"
+  },
+  "Partners": {
+    "navLabel": "Partner page navigation",
+    "homeLabel": "Luggo home",
+    "backHome": "Back to home",
+    "eyebrow": "Partner with Luggo",
+    "title": "Turn spare space into a luggage storage hub.",
+    "intro": "Hotels, guesthouses, shops and cafés can host a Luggo hub. Travellers book and pay online, then drop their bags with you.",
+    "applyCta": "Apply now",
+    "benefitsTitle": "Why partner with us",
+    "benefits": {
+      "earn": {
+        "title": "Earn from space you already have",
+        "text": "Use a secure room or corner you are not using. We agree your share with you before your hub goes live."
+      },
+      "simple": {
+        "title": "Bookings and payments handled",
+        "text": "Travellers book and pay through Luggo. Your staff check bags in and out from a phone."
+      },
+      "setup": {
+        "title": "Set up with you",
+        "text": "We create your hub page and staff accounts, and provide tamper-proof seals and QR check-in."
+      }
+    },
+    "howTitle": "How to join",
+    "how": {
+      "apply": {
+        "title": "Apply",
+        "text": "Fill in the form below. It takes a few minutes."
+      },
+      "review": {
+        "title": "We review",
+        "text": "Our team contacts you to confirm the details and visit your space."
+      },
+      "live": {
+        "title": "Go live",
+        "text": "Once approved, we set up your hub and switch it on together."
+      }
+    },
+    "formTitle": "Apply to become a partner",
+    "formIntro": "Tell us about your business. We reply to every application.",
+    "invitedFor": "This invitation is for {name}.",
+    "inviteInvalid": "This invite link has expired or was already used. You can still apply with the form below.",
+    "fields": {
+      "businessName": "Business name",
+      "contactName": "Your name",
+      "phone": "Phone number",
+      "phoneHint": "Sri Lankan number, e.g. 071 234 5678",
+      "email": "Email address",
+      "city": "City or town",
+      "address": "Address",
+      "businessType": "Type of business",
+      "capacity": "Bags you could store",
+      "capacityHint": "A rough number is fine",
+      "openTime": "Opens at",
+      "closeTime": "Closes at",
+      "notes": "Anything else we should know?",
+      "notesHint": "For example: where the bags would be kept, security, or questions for us."
+    },
+    "types": {
+      "hotel": "Hotel",
+      "guesthouse": "Guesthouse or hostel",
+      "shop": "Shop",
+      "cafe": "Café or restaurant",
+      "travel": "Travel or tour business",
+      "other": "Other"
+    },
+    "submit": "Send application",
+    "submitting": "Sending…",
+    "consent": "By applying you agree that Luggo may contact you about this application.",
+    "successTitle": "Application received",
+    "successText": "Thank you. Our team will contact you using the details you gave.",
+    "errors": {
+      "invalid": "Please check the form. Some details are missing or not valid.",
+      "rateLimited": "Too many applications from this device or email. Please try again later.",
+      "inviteInvalid": "This invite link has expired or was already used. Reload the page and apply without it.",
+      "failed": "We could not save your application. Please try again."
+    }
   }
 }
