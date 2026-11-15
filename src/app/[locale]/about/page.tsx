@@ -4,13 +4,14 @@ import { Link } from '@/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { SocialLinks } from '@/components/shared/SocialLinks'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { localizedAlternates } from '@/lib/i18n/seo'
 import { CONTACT_EMAIL } from '@/lib/public-company'
 import { ArrowLeft, MapPin, Package, QrCode } from 'lucide-react'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
   const t = await getTranslations({ locale, namespace: 'Meta' })
-  return { title: t('aboutTitle'), description: t('aboutDescription') }
+  return { title: t('aboutTitle'), description: t('aboutDescription'), alternates: localizedAlternates(locale, '/about') }
 }
 
 export default async function AboutPage() {

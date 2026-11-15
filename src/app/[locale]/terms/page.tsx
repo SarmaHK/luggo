@@ -3,10 +3,15 @@ import { Link } from '@/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
+import { localizedAlternates } from '@/lib/i18n/seo'
 
-export const metadata: Metadata = {
-  title: 'Terms of Service',
-  description: 'Luggo Terms of Service — governed by the laws of Sri Lanka.',
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await props.params
+  return {
+    title: 'Terms of Service',
+    description: 'Luggo Terms of Service — governed by the laws of Sri Lanka.',
+    alternates: localizedAlternates(locale, '/terms'),
+  }
 }
 
 // ── Section helpers ───────────────────────────────────────────────────────────

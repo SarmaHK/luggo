@@ -22,14 +22,15 @@ type Hub = {
 export async function generateMetadata(props: { params: Promise<{ hubId: string; locale: string }> }): Promise<Metadata> {
   const params = await props.params
   const t = await getTranslations({ locale: params.locale, namespace: 'Meta' })
-  if (LISTINGS_HIDDEN) return { title: t('book') }
+  const robots = { index: false, follow: false }
+  if (LISTINGS_HIDDEN) return { title: t('book'), robots }
   const supabase = await createClient()
   const { data: hub } = await supabase
     .from('hubs')
     .select('name')
     .eq('id', params.hubId)
     .single() as { data: { name: string } | null }
-  return { title: hub ? t('bookHub', { name: hub.name }) : t('book') }
+  return { title: hub ? t('bookHub', { name: hub.name }) : t('book'), robots }
 }
 
 export default async function BookPage(props: { params: Promise<{ hubId: string }> }) {

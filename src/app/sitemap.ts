@@ -51,8 +51,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publicRoutes: SitemapEntryInput[] = [
     { path: '/', changeFrequency: 'daily', priority: 1.0, lastModified: now },
     { path: '/hubs', changeFrequency: 'daily', priority: 0.9, lastModified: now },
-    { path: '/login', changeFrequency: 'monthly', priority: 0.7, lastModified: now },
-    { path: '/forgot-password', changeFrequency: 'monthly', priority: 0.5, lastModified: now },
     { path: '/about', changeFrequency: 'monthly', priority: 0.6, lastModified: now },
     { path: '/terms', changeFrequency: 'yearly', priority: 0.3, lastModified: now },
     { path: '/privacy', changeFrequency: 'yearly', priority: 0.3, lastModified: now },

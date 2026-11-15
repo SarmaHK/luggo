@@ -3,8 +3,12 @@ import { CONTACT_EMAIL } from '@/lib/public-company'
 import { Logo } from '@/components/ui/Logo'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
+import { localizedAlternates } from '@/lib/i18n/seo'
 
-export const metadata: Metadata = { title: 'Privacy Policy' }
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await props.params
+  return { title: 'Privacy Policy', alternates: localizedAlternates(locale, '/privacy') }
+}
 
 export default function PrivacyPage() {
   return (

@@ -3,6 +3,7 @@ import { HidePausedBanner } from '@/components/shared/BookingPausedBanner'
 
 export const metadata: Metadata = {
   manifest: '/api/manifest/admin',
+  robots: { index: false, follow: false },
 }
 
 // Admin route group layout.

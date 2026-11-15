@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { HubDetailsUI } from '@/components/hubs/HubDetailsUI'
+import { localizedAlternates } from '@/lib/i18n/seo'
 import { siteUrl } from '@/lib/site-url'
 import { getHubBagRates } from '@/lib/utils/hubPricing'
 import { LISTINGS_HIDDEN } from '@/lib/booking-pause'
@@ -41,26 +42,28 @@ export async function generateMetadata(
   const supabase = await createClient()
   const { data: hub } = await supabase
     .from('hubs')
-    .select('name, location, address')
+    .select('name, location, address, image_url')
     .eq('id', params.hubId)
-    .single() as { data: { name: string; location: string; address: string } | null }
+    .single() as { data: { name: string; location: string; address: string; image_url: string | null } | null }
 
   if (!hub) return {}
 
   const path = `/hubs/${params.hubId}`
-  const canonicalPath = params.locale === 'en' ? path : `/${params.locale}${path}`
 
   const t = await getTranslations({ locale: params.locale, namespace: 'Meta' })
   return {
     title: t('hubTitle', { name: hub.name, location: hub.location }),
     description: t('hubDescription', { name: hub.name, location: hub.location, address: hub.address }),
-    alternates: {
-      canonical: canonicalPath,
-      languages: {
-        en: path,
-        si: `/si${path}`,
-        ta: `/ta${path}`,
-      },
+    alternates: localizedAlternates(params.locale, path),
+    openGraph: {
+      type: 'website',
+      title: t('hubTitle', { name: hub.name, location: hub.location }),
+      description: t('hubDescription', { name: hub.name, location: hub.location, address: hub.address }),
+      images: [{ url: hub.image_url || '/images/hubs/bia.png', alt: `${hub.name}, ${hub.location}` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [hub.image_url || '/images/hubs/bia.png'],
     },
   }
 }
@@ -119,7 +122,6 @@ export default async function HubDetailPage(
     name: `Luggo Luggage Storage - ${hub.name}`,
     image: hub.image_url || `${siteUrl}/images/hubs/bia.png`,
     url: `${siteUrl}/hubs/${hub.id}`,
-    telephone: '+94770000000',
     priceRange,
     address: {
       '@type': 'PostalAddress',

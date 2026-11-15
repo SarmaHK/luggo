@@ -4,6 +4,7 @@ import { HidePausedBanner } from '@/components/shared/BookingPausedBanner'
 
 export const metadata: Metadata = {
   manifest: '/api/manifest/staff',
+  robots: { index: false, follow: false },
 }
 
 // Staff PWA layout — dedicated Android phone at hub

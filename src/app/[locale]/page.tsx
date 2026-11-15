@@ -5,6 +5,7 @@ import LandingPage from '@/components/marketing/LandingPage'
 // import MaintenancePage from '@/components/marketing/MaintenancePage' // Available for service stopped / maintenance mode
 import { type UserRole, type BagType } from '@/types/database'
 import { CONTACT_EMAIL, SOCIAL_LINKS } from '@/lib/public-company'
+import { localizedAlternates } from '@/lib/i18n/seo'
 import { siteUrl } from '@/lib/site-url'
 import { DEFAULT_BAG_RATES, type BagRates } from '@/lib/utils/pricing'
 import { liveCitiesFromHubs } from '@/lib/utils/live-cities'
@@ -23,17 +24,8 @@ export async function generateMetadata(
     locale
   } = params;
 
-  const canonicalPath = locale === 'en' ? '/' : `/${locale}`
-
   return {
-    alternates: {
-      canonical: canonicalPath,
-      languages: {
-        en: '/',
-        si: '/si',
-        ta: '/ta',
-      },
-    },
+    alternates: localizedAlternates(locale, '/'),
   }
 }
 
