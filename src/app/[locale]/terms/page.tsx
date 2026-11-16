@@ -69,7 +69,7 @@ export default function TermsPage() {
       {/* Nav */}
       <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-1 text-gray-500 hover:text-ocean-900 text-sm font-bold transition-colors">
+          <Link href="/" className="flex min-h-11 items-center gap-1 text-gray-500 hover:text-ocean-900 text-sm font-bold transition-colors">
             <ChevronLeft size={18} /> Back
           </Link>
           <Logo size="sm" />
@@ -87,7 +87,7 @@ export default function TermsPage() {
             By accessing or using Luggo, you agree to be bound by these Terms. These Terms are governed by the
             laws of Sri Lanka. Your statutory rights under Sri Lankan consumer protection law are not affected.
             Questions? Contact us at{' '}
-            <a href="mailto:support@luggo.lk" className="text-brand font-semibold hover:underline">support@luggo.lk</a>.
+            <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">support@luggo.lk</a>.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export default function TermsPage() {
           <p className="text-sm text-gray-600 leading-relaxed">
             Luggo (Private) Limited is a company incorporated in Sri Lanka under the Companies Act No. 7 of 2007.
             You can reach us at{' '}
-            <a href="mailto:support@luggo.lk" className="text-brand font-semibold hover:underline">support@luggo.lk</a>
+            <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">support@luggo.lk</a>
             {' '}or via the Luggo Platform.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function TermsPage() {
           the Luggo Platform; and (e) your use of the Platform will comply with all applicable laws of Sri Lanka.</Body>
         <Body>You must provide accurate, current, and complete information and keep your account up to date. You are solely
           responsible for maintaining the confidentiality of your account credentials. Notify us immediately at{' '}
-          <a href="mailto:support@luggo.lk" className="text-brand font-semibold hover:underline">support@luggo.lk</a> if
+          <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">support@luggo.lk</a> if
           you suspect unauthorized access.</Body>
 
         {/* Section 3 */}
@@ -243,7 +243,7 @@ export default function TermsPage() {
         ]} />
         <Body>
           To submit a claim: notify Luggo at{' '}
-          <a href="mailto:support@luggo.lk" className="text-brand font-semibold hover:underline">support@luggo.lk</a> within
+          <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">support@luggo.lk</a> within
           24 hours of the scheduled end of the Booking with photographs, a full description of the items, and supporting
           evidence (e.g., police report, receipts).
         </Body>
@@ -330,7 +330,7 @@ export default function TermsPage() {
         <SectionHeading id="termination">13. Term, Termination, and Suspension</SectionHeading>
         <Body>These Terms are effective from the date you first access the Luggo Platform and remain in effect until terminated.</Body>
         <Body>You may terminate your agreement with Luggo at any time by contacting{' '}
-          <a href="mailto:support@luggo.lk" className="text-brand font-semibold hover:underline">support@luggo.lk</a>.</Body>
+          <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">support@luggo.lk</a>.</Body>
         <Body>
           Luggo may terminate your account: (a) for any reason with 30 days&apos; written notice; or (b) immediately if you
           materially breach these Terms, violate applicable Sri Lankan law, or pose a risk to Luggo, Partner Locations,
@@ -364,7 +364,7 @@ export default function TermsPage() {
         </Body>
         <Body>
           <strong>Privacy.</strong> Luggo collects, uses, and shares information as described in the{' '}
-          <Link href="/privacy" className="text-brand font-semibold hover:underline">Luggo Privacy Policy</Link>.
+          <Link href="/privacy" className="inline-block py-3 -my-3 text-brand font-semibold hover:underline">Luggo Privacy Policy</Link>.
           All personal data is handled in accordance with applicable Sri Lankan data protection laws.
         </Body>
         <Body>
@@ -400,7 +400,7 @@ export default function TermsPage() {
             <br />
             <span className="font-semibold text-ocean-900">Luggo (Private) Limited</span>
             {' · '}
-            <a href="mailto:support@luggo.lk" className="text-brand hover:underline">support@luggo.lk</a>
+            <a href="mailto:support@luggo.lk" className="inline-block py-3 -my-3 text-brand hover:underline">support@luggo.lk</a>
             {' · Sri Lanka'}
           </p>
         </div>

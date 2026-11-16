@@ -162,7 +162,7 @@ export function HubList({ hubs, isLoggedIn = false }: { hubs: Hub[]; isLoggedIn?
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                     {hub.distanceKm !== null && (
                       <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg">
-                        <span className="text-[11px] font-bold text-gray-700">
+                        <span className="text-xs font-bold text-gray-700">
                           {hub.distanceKm < 1
                             ? `${(hub.distanceKm * 1000).toFixed(0)}m`
                             : `${hub.distanceKm.toFixed(1)}km`}

@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function NotFound() {
   const t = useTranslations('NotFound')
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center">
+    <main id="main-content" className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center">
       <div className="w-20 h-20 bg-brand/10 rounded-3xl flex items-center justify-center text-brand mb-6">
         <PackageOpen size={40} aria-hidden="true" />
       </div>
@@ -30,6 +30,6 @@ export default function NotFound() {
         <Home size={16} aria-hidden="true" />
         {t('cta')}
       </Link>
-    </div>
+    </main>
   )
 }

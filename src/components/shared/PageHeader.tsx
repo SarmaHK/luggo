@@ -26,7 +26,7 @@ export function PageHeader({ title, subtitle, backHref, action }: PageHeaderProp
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-bold text-gray-900 leading-tight break-words">{title}</h1>
           {subtitle && (
-            <p className="text-[11px] text-gray-500 leading-tight break-words mt-0.5">{subtitle}</p>
+            <p className="text-xs text-gray-500 leading-tight break-words mt-0.5">{subtitle}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}
