@@ -75,6 +75,7 @@ function NavBar() {
           <a href="#locations" className="hover:text-brand transition-colors">{t('locations')}</a>
           <a href="#faq" className="hover:text-brand transition-colors">{t('faq')}</a>
           <Link href="/about" className="hover:text-brand transition-colors">{t('about')}</Link>
+          <Link href="/partners" className="hover:text-brand transition-colors">{t('partners')}</Link>
         </div>
         <div className="hidden md:flex items-center gap-2">
           <LanguageSwitcher />
@@ -102,6 +103,7 @@ function NavBar() {
               <a href="#faq" onClick={() => setOpen(false)}
                 className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('faq')}</a>
               <Link href="/about" onClick={() => setOpen(false)} className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('about')}</Link>
+              <Link href="/partners" onClick={() => setOpen(false)} className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('partners')}</Link>
               <div className="pt-4 border-t border-gray-100 flex flex-col gap-3 mt-4">
                 <div className="px-3 py-2 flex items-center justify-between bg-gray-50 rounded-2xl">
                   <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{ts('language')}</span>
@@ -511,6 +513,26 @@ function LocationsSection({ liveCities }: { liveCities: MarketingCity[] }) {
   )
 }
 
+// ── Partner band ──────────────────────────────────────────────────────────────
+
+function PartnerBand() {
+  const t = useTranslations('Partners')
+  return (
+    <section aria-labelledby="partner-band-title" className="bg-white px-4 pb-20">
+      <div className="max-w-6xl mx-auto bg-ocean-900 rounded-[32px] px-6 py-10 sm:px-12 sm:py-12 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+        <div className="max-w-2xl">
+          <p className="text-ocean-300 text-xs font-bold uppercase tracking-widest mb-3">{t('bandEyebrow')}</p>
+          <h2 id="partner-band-title" className="text-2xl sm:text-3xl font-black text-white mb-3">{t('bandTitle')}</h2>
+          <p className="text-white/80 text-sm sm:text-base leading-relaxed">{t('bandText')}</p>
+        </div>
+        <Link href="/partners" className="shrink-0 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 font-black text-ocean-900 hover:bg-ocean-50 transition-colors">
+          {t('bandCta')} <ArrowRight size={18} aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  )
+}
+
 // ── FAQ ───────────────────────────────────────────────────────────────────────
 
 const FAQ_KEYS = ['how', 'late', 'covered', 'account'] as const
@@ -624,6 +646,7 @@ export default function LandingPage({ rates = DEFAULT_BAG_RATES, liveCities = []
         <FeaturesSection />
         <PricingSection rates={rates} />
         <LocationsSection liveCities={liveCities} />
+        <PartnerBand />
         <FaqSection />
         <FooterCta />
       </main>

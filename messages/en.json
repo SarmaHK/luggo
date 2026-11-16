@@ -41,7 +41,8 @@
     "faq": "FAQ",
     "signIn": "Sign In",
     "findStorage": "Find Storage",
-    "about": "About"
+    "about": "About",
+    "partners": "Partners"
   },
   "Dashboard": {
     "welcomeBack": "Welcome back",
@@ -195,7 +196,8 @@
     "viewHub": "View hub",
     "mapUnavailable": "Map unavailable",
     "mapUnavailableDesc": "Use the list view to browse hubs.",
-    "noneAction": "About Luggo"
+    "noneAction": "About Luggo",
+    "hostHub": "Host a hub"
   },
   "Hub": {
     "available": "Available",
@@ -756,6 +758,10 @@
       "rateLimited": "Too many applications from this device or email. Please try again later.",
       "inviteInvalid": "This invite link has expired or was already used. Reload the page and apply without it.",
       "failed": "We could not save your application. Please try again."
-    }
+    },
+    "bandEyebrow": "For businesses",
+    "bandTitle": "Have space in one of these cities?",
+    "bandText": "Hotels, guesthouses, shops and cafés can host a Luggo hub. Apply in a few minutes and our team will contact you.",
+    "bandCta": "Partner with us"
   }
 }

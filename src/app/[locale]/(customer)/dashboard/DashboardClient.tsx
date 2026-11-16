@@ -401,7 +401,10 @@ export function DashboardClient({ hubs, activeBookings, firstName, userId, notif
         {hubs.length === 0 ? (
           <div className="py-16 px-4 text-center">
             <p className="text-sm font-medium text-gray-600 max-w-xs mx-auto">{tHubs('none')}</p>
-            <Link href="/about" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">{tHubs('noneAction')}</Link>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Link href="/partners" className="inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">{tHubs('hostHub')}</Link>
+              <Link href="/about" className="inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-bold text-ocean-900">{tHubs('noneAction')}</Link>
+            </div>
           </div>
         ) : isSearching ? (
           <section>
