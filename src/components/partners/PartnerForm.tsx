@@ -15,6 +15,8 @@ interface Props {
   initialBusinessName: string
 }
 
+const legendClass = 'text-xs font-extrabold uppercase tracking-widest text-ocean-600 mb-3 px-0'
+
 const fieldClass =
   'w-full min-h-12 px-4 py-3 rounded-2xl border border-gray-300 hover:border-gray-400 bg-white text-ocean-900 text-base md:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
 
@@ -68,29 +70,39 @@ export function PartnerForm({ locale, refCode, inviteToken, initialBusinessName 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-gray-200 bg-gray-50 p-5 sm:p-8 space-y-5">
-      <div className="grid sm:grid-cols-2 gap-5">
-        <Input label={t('fields.businessName')} required maxLength={120} autoComplete="organization" value={businessName} onChange={e => setBusinessName(e.target.value)} />
-        <Input label={t('fields.contactName')} required maxLength={100} autoComplete="name" value={contactName} onChange={e => setContactName(e.target.value)} />
-        <Input label={t('fields.phone')} hint={t('fields.phoneHint')} required type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} />
-        <Input label={t('fields.email')} required type="email" maxLength={200} autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />
-        <Input label={t('fields.city')} required maxLength={80} autoComplete="address-level2" value={city} onChange={e => setCity(e.target.value)} />
-        <Input label={t('fields.address')} required minLength={5} maxLength={250} autoComplete="street-address" value={address} onChange={e => setAddress(e.target.value)} />
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-gray-200 bg-gray-50 px-4 pt-5 pb-0 sm:p-8 space-y-6">
+      <fieldset className="space-y-4 min-w-0">
+        <legend className={legendClass}>{t('groups.business')}</legend>
+        <Input label={t('fields.businessName')} required maxLength={120} autoComplete="organization" enterKeyHint="next" value={businessName} onChange={e => setBusinessName(e.target.value)} />
         <div>
           <label htmlFor={typeId} className="block text-sm font-medium text-ocean-800 mb-1.5">{t('fields.businessType')}</label>
           <select id={typeId} required value={businessType} onChange={e => setBusinessType(e.target.value as PartnerBusinessType)} className={fieldClass}>
             {PARTNER_BUSINESS_TYPES.map(type => <option key={type} value={type}>{t(`types.${type}`)}</option>)}
           </select>
         </div>
-        <Input label={t('fields.capacity')} hint={t('fields.capacityHint')} type="number" inputMode="numeric" min={1} max={1000} value={capacity} onChange={e => setCapacity(e.target.value)} />
-        <Input label={t('fields.openTime')} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
-        <Input label={t('fields.closeTime')} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
-      </div>
+        <Input label={t('fields.city')} required maxLength={80} autoComplete="address-level2" enterKeyHint="next" value={city} onChange={e => setCity(e.target.value)} />
+        <Input label={t('fields.address')} required minLength={5} maxLength={250} autoComplete="street-address" enterKeyHint="next" value={address} onChange={e => setAddress(e.target.value)} />
+      </fieldset>
 
-      <div>
-        <label htmlFor={notesId} className="block text-sm font-medium text-ocean-800 mb-1.5">{t('fields.notes')}</label>
-        <textarea id={notesId} rows={3} maxLength={1000} value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('fields.notesHint')} className={fieldClass} />
-      </div>
+      <fieldset className="space-y-4 min-w-0">
+        <legend className={legendClass}>{t('groups.contact')}</legend>
+        <Input label={t('fields.contactName')} required maxLength={100} autoComplete="name" enterKeyHint="next" value={contactName} onChange={e => setContactName(e.target.value)} />
+        <Input label={t('fields.phone')} hint={t('fields.phoneHint')} required type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={e => setPhone(e.target.value)} />
+        <Input label={t('fields.email')} required type="email" inputMode="email" maxLength={200} autoComplete="email" enterKeyHint="next" value={email} onChange={e => setEmail(e.target.value)} />
+      </fieldset>
+
+      <fieldset className="space-y-4 min-w-0">
+        <legend className={legendClass}>{t('groups.space')}</legend>
+        <Input label={t('fields.capacity')} hint={t('fields.capacityHint')} type="number" inputMode="numeric" min={1} max={1000} value={capacity} onChange={e => setCapacity(e.target.value)} />
+        <div className="grid grid-cols-2 gap-3">
+          <Input label={t('fields.openTime')} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
+          <Input label={t('fields.closeTime')} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor={notesId} className="block text-sm font-medium text-ocean-800 mb-1.5">{t('fields.notes')}</label>
+          <textarea id={notesId} rows={3} maxLength={1000} value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('fields.notesHint')} className={fieldClass} />
+        </div>
+      </fieldset>
 
       {/* Honeypot: hidden from people and assistive tech; bots fill it. */}
       <div aria-hidden="true" className="hidden">
@@ -99,8 +111,11 @@ export function PartnerForm({ locale, refCode, inviteToken, initialBusinessName 
 
       {error && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{error}</p>}
 
-      <Button type="submit" size="lg" fullWidth loading={isPending}>{isPending ? t('submitting') : t('submit')}</Button>
-      <p className="text-xs text-gray-600 text-center">{t('consent')}</p>
+      {/* Sticky on phones so the submit button is always in reach of the thumb on a long form. */}
+      <div className="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-gray-50 from-80% to-transparent rounded-b-3xl">
+        <Button type="submit" size="lg" fullWidth loading={isPending}>{isPending ? t('submitting') : t('submit')}</Button>
+        <p className="mt-3 text-xs text-gray-600 text-center">{t('consent')}</p>
+      </div>
     </form>
   )
 }
