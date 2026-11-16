@@ -762,6 +762,11 @@
     "bandEyebrow": "For businesses",
     "bandTitle": "Have space in one of these cities?",
     "bandText": "Hotels, guesthouses, shops and cafés can host a Luggo hub. Apply in a few minutes and our team will contact you.",
-    "bandCta": "Partner with us"
+    "bandCta": "Partner with us",
+    "groups": {
+      "business": "Your business",
+      "contact": "Who we should contact",
+      "space": "Space and hours"
+    }
   }
 }

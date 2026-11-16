@@ -4,7 +4,6 @@ import { MotionConfig } from '@/components/shared/MotionProvider'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations } from 'next-intl/server'
 import { siteUrl } from '@/lib/site-url'
-import { BookingPausedBanner } from '@/components/shared/BookingPausedBanner'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
@@ -85,7 +84,6 @@ export default async function RootLayout(
 
       <body suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Colombo">
-          <BookingPausedBanner />
           <MotionConfig>{children}</MotionConfig>
         </NextIntlClientProvider>
       </body>
