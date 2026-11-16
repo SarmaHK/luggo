@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { HubList } from '@/components/hubs/HubList'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { localizedAlternates } from '@/lib/i18n/seo'
 import { LISTINGS_HIDDEN } from '@/lib/booking-pause'
 
 export async function generateMetadata(
@@ -17,20 +18,12 @@ export async function generateMetadata(
   } = params;
 
   const path = '/hubs'
-  const canonicalPath = locale === 'en' ? path : `/${locale}${path}`
   const t = await getTranslations({ locale, namespace: 'Meta' })
 
   return {
     title: t('hubsTitle'),
     description: t('hubsDescription'),
-    alternates: {
-      canonical: canonicalPath,
-      languages: {
-        en: path,
-        si: `/si${path}`,
-        ta: `/ta${path}`,
-      },
-    },
+    alternates: localizedAlternates(locale, path),
   }
 }
 

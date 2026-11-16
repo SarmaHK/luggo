@@ -3,22 +3,26 @@ import { CONTACT_EMAIL } from '@/lib/public-company'
 import { Logo } from '@/components/ui/Logo'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
+import { localizedAlternates } from '@/lib/i18n/seo'
 
-export const metadata: Metadata = { title: 'Privacy Policy' }
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await props.params
+  return { title: 'Privacy Policy', alternates: localizedAlternates(locale, '/privacy') }
+}
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white">
       <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-1 text-gray-500 hover:text-ocean-900 text-sm font-bold transition-colors">
+          <Link href="/" className="flex min-h-11 items-center gap-1 text-gray-500 hover:text-ocean-900 text-sm font-bold transition-colors">
             <ChevronLeft size={18} /> Back
           </Link>
           <Logo size="sm" />
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div id="main-content" role="main" className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-extrabold text-ocean-900 mb-2">Privacy Policy</h1>
         <p className="text-gray-500 text-sm mb-10">Last updated: October 2026</p>
 
@@ -49,7 +53,7 @@ export default function PrivacyPage() {
           },
           {
             title: 'Your Rights',
-            body: <>You have the right to access, correct, or delete your personal data. To exercise these rights, email <a href={`mailto:${CONTACT_EMAIL}`} className="text-ocean-600 font-semibold underline">{CONTACT_EMAIL}</a>.</>,
+            body: <>You have the right to access, correct, or delete your personal data. To exercise these rights, email <a href={`mailto:${CONTACT_EMAIL}`} className="inline-block py-3 -my-3 text-ocean-600 font-semibold underline">{CONTACT_EMAIL}</a>.</>,
           },
           {
             title: 'Cookies',
@@ -57,7 +61,7 @@ export default function PrivacyPage() {
           },
           {
             title: 'Contact',
-            body: <>For privacy-related questions, contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-ocean-600 font-semibold underline">{CONTACT_EMAIL}</a>.</>,
+            body: <>For privacy-related questions, contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="inline-block py-3 -my-3 text-ocean-600 font-semibold underline">{CONTACT_EMAIL}</a>.</>,
           },
         ].map((section) => (
           <div key={section.title} className="mb-8">

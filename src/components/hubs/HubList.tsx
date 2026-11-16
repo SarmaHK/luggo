@@ -71,7 +71,8 @@ export function HubList({ hubs, isLoggedIn = false }: { hubs: Hub[]; isLoggedIn?
   if (!hubs.length) {
     return (
       <div className="px-4 py-20 text-center">
-        <p className="text-gray-500 font-medium text-sm">{t('none')}</p>
+        <p className="text-gray-600 font-medium text-sm max-w-xs mx-auto">{t('none')}</p>
+        <Link href="/partners" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">{t('hostHub')}</Link>
       </div>
     )
   }

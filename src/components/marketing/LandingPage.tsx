@@ -7,7 +7,7 @@ import { GUARANTEE_LIMIT_LKR, GUARANTEE_LIMIT_LABEL } from '@/lib/utils/guarante
 import { CONTACT_EMAIL } from '@/lib/public-company'
 import { Logo } from '@/components/ui/Logo'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
-import { SplashScreen } from '@/components/marketing/SplashScreen'
+import { SplashScreen, SPLASH_SEEN_KEY } from '@/components/marketing/SplashScreen'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/navigation'
 import Image from 'next/image'
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { Variants } from 'framer-motion'
 import { DEFAULT_BAG_RATES, type BagRates } from '@/lib/utils/pricing'
+import type { MarketingCity } from '@/lib/utils/live-cities'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -27,10 +28,11 @@ const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
+// Only cities with a live partner hub are linked; the rest show "Coming soon" (see liveCities prop).
 const CITY_LOCATIONS = [
   { city: 'colombo', img: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80' },
-  { city: 'kandy',   img: 'https://images.unsplash.com/photo-1569384370146-66a8f9734e1e?w=600&q=80' },
-  { city: 'galle',   img: 'https://images.unsplash.com/photo-1588598198321-9735fd5f2aad?w=600&q=80' },
+  { city: 'kandy',   img: '/images/hubs/kdy.png' },
+  { city: 'galle',   img: '/images/hubs/gal.png' },
   { city: 'ella',    img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80' },
   { city: 'airport', img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80' },
   { city: 'negombo', img: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80' },
@@ -65,7 +67,7 @@ function NavBar() {
   }, [])
 
   return (
-    <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white/90 backdrop-blur-md border-b border-gray-100'}`}>
+    <nav style={{ top: 'var(--banner-h, 0px)' }} className={`fixed inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white/90 backdrop-blur-md border-b border-gray-100'}`}>
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Logo size="md" />
         <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-ocean-900">
@@ -73,6 +75,7 @@ function NavBar() {
           <a href="#locations" className="hover:text-brand transition-colors">{t('locations')}</a>
           <a href="#faq" className="hover:text-brand transition-colors">{t('faq')}</a>
           <Link href="/about" className="hover:text-brand transition-colors">{t('about')}</Link>
+          <Link href="/partners" className="hover:text-brand transition-colors">{t('partners')}</Link>
         </div>
         <div className="hidden md:flex items-center gap-2">
           <LanguageSwitcher />
@@ -100,6 +103,7 @@ function NavBar() {
               <a href="#faq" onClick={() => setOpen(false)}
                 className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('faq')}</a>
               <Link href="/about" onClick={() => setOpen(false)} className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('about')}</Link>
+              <Link href="/partners" onClick={() => setOpen(false)} className="block text-base font-bold text-ocean-900 p-3 rounded-2xl hover:bg-gray-50">{t('partners')}</Link>
               <div className="pt-4 border-t border-gray-100 flex flex-col gap-3 mt-4">
                 <div className="px-3 py-2 flex items-center justify-between bg-gray-50 rounded-2xl">
                   <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{ts('language')}</span>
@@ -126,6 +130,10 @@ function AppPreviewCard() {
     <div className="relative">
       <div className="absolute inset-0 bg-brand/20 rounded-3xl blur-2xl scale-110" />
       <div className="relative bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl p-4 shadow-2xl">
+        {/* Illustration only: not a real booking. */}
+        <span className="absolute -top-3 right-4 z-10 bg-amber-400 text-ocean-900 text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+          {t('example')}
+        </span>
         <div className="bg-white rounded-2xl p-4 shadow-lg mb-3">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 bg-brand rounded-full flex items-center justify-center">
@@ -168,13 +176,15 @@ function AppPreviewCard() {
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-function HeroSection() {
+function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
   const t = useTranslations('Index')
   const tc = useTranslations('Cities')
-  const cities = ['colombo', 'kandy', 'galle', 'ella', 'mirissa', 'negombo'].map(city => tc(`${city}.name`))
+  // Only rotate through cities with a live hub. With none live, the headline is the plain title.
+  const cities = liveCities.filter(c => c !== 'airport').map(city => tc(`${city}.name`))
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
+    if (cities.length < 2) return
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % cities.length)
     }, 3000)
@@ -205,6 +215,7 @@ function HeroSection() {
             </motion.div>
 
             <h1 className="text-[2.25rem] sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-5 min-h-[140px] sm:min-h-0">
+              {cities.length === 0 ? t('title') : <>
               {t('titleBefore')}
               <span className="relative inline-block mx-2">
                 <AnimatePresence mode="wait">
@@ -223,7 +234,7 @@ function HeroSection() {
                 <div className="absolute -bottom-2 left-0 right-0 h-1 sm:h-2 bg-brand/30 blur-sm rounded-full" />
               </span>
               <br className="hidden sm:block" />
-              {t('titleAfter')}
+              {t('titleAfter')}</>}
             </h1>
 
             <motion.p variants={fadeUp} className="text-white/80 text-base sm:text-lg max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
@@ -272,20 +283,8 @@ function HeroSection() {
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.6, duration:0.5 }}
-          className="mt-12 sm:mt-20 grid grid-cols-3 gap-3 sm:gap-6 max-w-lg mx-auto lg:mx-0">
-          {[
-            ['10+', t('stats.hubs')],
-            ['5,000+', t('stats.travellers')],
-            ['0', t('stats.bagsLost')]
-          ].map(([v,l]) => (
-            <div key={l} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 text-center backdrop-blur-sm">
-              <p className="text-2xl sm:text-3xl font-black text-white mb-1">{v}</p>
-              <p className="text-[11px] sm:text-xs font-bold text-white/70 uppercase tracking-widest">{l}</p>
-            </div>
-          ))}
-        </motion.div>
+        {/* TODO: if hero stats return, compute them from the database (count of active hubs and
+            completed bookings). Never hardcode counts or "bags lost" style claims. */}
       </div>
     </section>
   )
@@ -477,7 +476,7 @@ function PricingSection({ rates }: { rates: BagRates }) {
 
 // ── Locations ─────────────────────────────────────────────────────────────────
 
-function LocationsSection() {
+function LocationsSection({ liveCities }: { liveCities: MarketingCity[] }) {
   const nt = useTranslations('Nav')
   const tc = useTranslations('Cities')
   return (
@@ -487,17 +486,48 @@ function LocationsSection() {
         <h2 className="text-3xl sm:text-4xl font-black text-ocean-900">{nt('locations')}</h2>
       </div>
       <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {CITY_LOCATIONS.map((c, i) => (
-          <Link key={i} href="/hubs" className="group block text-center">
-            <div className="relative aspect-square rounded-full overflow-hidden mb-4 border-2 border-gray-100 p-1 group-hover:border-brand transition-colors">
-              <div className="relative w-full h-full rounded-full overflow-hidden">
-                <Image src={c.img} alt="" fill sizes="(max-width: 768px) 50vw, 16vw" className="object-cover group-hover:scale-110 transition-transform duration-500" />
+        {CITY_LOCATIONS.map((c) => {
+          const live = liveCities.includes(c.city)
+          const body = (
+            <>
+              <div className={`relative aspect-square rounded-full overflow-hidden mb-4 border-2 border-gray-100 p-1 transition-colors ${live ? 'group-hover:border-brand' : ''}`}>
+                <div className="relative w-full h-full rounded-full overflow-hidden">
+                  <Image src={c.img} alt="" fill sizes="(max-width: 768px) 50vw, 16vw" className={`object-cover transition-transform duration-500 ${live ? 'group-hover:scale-110' : 'grayscale opacity-60'}`} />
+                </div>
               </div>
-            </div>
-            <p className="font-bold text-ocean-900 text-sm">{tc(`${c.city}.name`)}</p>
-            <p className="text-gray-600 text-xs mt-1">{tc(`${c.city}.desc`)}</p>
-          </Link>
-        ))}
+              <p className="font-bold text-ocean-900 text-sm">{tc(`${c.city}.name`)}</p>
+              <p className="text-gray-600 text-xs mt-1">{tc(`${c.city}.desc`)}</p>
+              {!live && (
+                <span className="inline-block mt-2 text-[11px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                  {tc('comingSoon')}
+                </span>
+              )}
+            </>
+          )
+          return live
+            ? <Link key={c.city} href="/hubs" className="group block text-center">{body}</Link>
+            : <div key={c.city} className="block text-center">{body}</div>
+        })}
+      </div>
+    </section>
+  )
+}
+
+// ── Partner band ──────────────────────────────────────────────────────────────
+
+function PartnerBand() {
+  const t = useTranslations('Partners')
+  return (
+    <section aria-labelledby="partner-band-title" className="bg-white px-4 pb-20">
+      <div className="max-w-6xl mx-auto bg-ocean-900 rounded-[32px] px-6 py-10 sm:px-12 sm:py-12 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+        <div className="max-w-2xl">
+          <p className="text-ocean-300 text-xs font-bold uppercase tracking-widest mb-3">{t('bandEyebrow')}</p>
+          <h2 id="partner-band-title" className="text-2xl sm:text-3xl font-black text-white mb-3">{t('bandTitle')}</h2>
+          <p className="text-white/80 text-sm sm:text-base leading-relaxed">{t('bandText')}</p>
+        </div>
+        <Link href="/partners" className="shrink-0 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 font-black text-ocean-900 hover:bg-ocean-50 transition-colors">
+          {t('bandCta')} <ArrowRight size={18} aria-hidden="true" />
+        </Link>
       </div>
     </section>
   )
@@ -570,6 +600,7 @@ function Footer() {
             <a href="#how-it-works" className={linkClass}>{t('how')}</a>
             <Link href="/about" className={linkClass}>{t('about')}</Link>
             <a href="#locations" className={linkClass}>{t('locations')}</a>
+            <Link href="/partners" className={linkClass}>{t('partners')}</Link>
             <Link href="/terms" className={linkClass}>{t('terms')}</Link>
             <Link href="/privacy" className={linkClass}>{t('privacy')}</Link>
           </nav>
@@ -586,9 +617,7 @@ function Footer() {
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-const SPLASH_SEEN_KEY = 'luggo_splash_seen'
-
-export default function LandingPage({ rates = DEFAULT_BAG_RATES }: { rates?: BagRates }) {
+export default function LandingPage({ rates = DEFAULT_BAG_RATES, liveCities = [] }: { rates?: BagRates; liveCities?: MarketingCity[] }) {
   const tShell = useTranslations('Shell')
   const [showSplash, setShowSplash] = useState(true)
   const hideSplash = useCallback(() => {
@@ -610,14 +639,17 @@ export default function LandingPage({ rates = DEFAULT_BAG_RATES }: { rates?: Bag
         {showSplash && <SplashScreen onComplete={hideSplash} skipLabel={tShell('skip')} />}
       </AnimatePresence>
       <NavBar />
-      <HeroSection />
-      <SocialProofBand />
-      <HowItWorksSection />
-      <FeaturesSection />
-      <PricingSection rates={rates} />
-      <LocationsSection />
-      <FaqSection />
-      <FooterCta />
+      <main id="main-content">
+        <HeroSection liveCities={liveCities} />
+        <SocialProofBand />
+        <HowItWorksSection />
+        <FeaturesSection />
+        <PricingSection rates={rates} />
+        <LocationsSection liveCities={liveCities} />
+        <PartnerBand />
+        <FaqSection />
+        <FooterCta />
+      </main>
       <Footer />
     </div>
   )

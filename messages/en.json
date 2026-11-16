@@ -3,15 +3,10 @@
     "title": "Store Bags Safely. Explore Sri Lanka.",
     "titleBefore": "Luggage Storage in",
     "titleAfter": "— Explore Sri Lanka Hands-Free.",
-    "subtitle": "Verified hubs in Colombo, Kandy, Galle, Ella & more. Pay by the hour. Pick up whenever you're ready.",
+    "subtitle": "Store your bags with partner hubs in Sri Lanka. Pay by the hour. Pick up whenever you're ready.",
     "findStorage": "Find Storage Near Me",
     "howItWorks": "How It Works",
-    "vettedNetwork": "Sri Lanka's Trusted Luggage Storage Network",
-    "stats": {
-      "hubs": "Hubs",
-      "travellers": "Travellers",
-      "bagsLost": "Bags Lost"
-    },
+    "vettedNetwork": "Luggage Storage Network in Sri Lanka",
     "chips": {
       "noAccount": "No account needed",
       "seals": "Tamper-proof seals",
@@ -46,7 +41,8 @@
     "faq": "FAQ",
     "signIn": "Sign In",
     "findStorage": "Find Storage",
-    "about": "About"
+    "about": "About",
+    "partners": "Partners"
   },
   "Dashboard": {
     "welcomeBack": "Welcome back",
@@ -111,7 +107,7 @@
       "tag": "How It Works",
       "title": "Four simple steps to freedom",
       "step1": "Find a Hub",
-      "step1Desc": "Locate a verified storage partner near you in Colombo, Galle, or Ella.",
+      "step1Desc": "Locate a verified storage partner near you.",
       "step2": "Book Online",
       "step2Desc": "Reserve your space in seconds with a few taps on your phone.",
       "step3": "Drop & Secure",
@@ -136,10 +132,6 @@
       "feature5Desc": "Our team is always ready to help you with your storage needs.",
       "feature6": "Local Insights",
       "feature6Desc": "Our hub partners are locals who can give you the best travel tips."
-    },
-    "reviews": {
-      "tag": "Testimonials",
-      "title": "Loved by travellers worldwide"
     }
   },
   "Shell": {
@@ -192,7 +184,7 @@
   "Hubs": {
     "title": "Find a Hub",
     "count": "{count, plural, one {# location available} other {# locations available}}",
-    "none": "No active hubs found.",
+    "none": "No hubs are available yet. New partner hubs will appear here soon.",
     "list": "List",
     "map": "Map",
     "locating": "Locating…",
@@ -203,7 +195,9 @@
     "book": "Book",
     "viewHub": "View hub",
     "mapUnavailable": "Map unavailable",
-    "mapUnavailableDesc": "Use the list view to browse hubs."
+    "mapUnavailableDesc": "Use the list view to browse hubs.",
+    "noneAction": "About Luggo",
+    "hostHub": "Host a hub"
   },
   "Hub": {
     "available": "Available",
@@ -245,7 +239,7 @@
   },
   "Meta": {
     "hubsTitle": "Luggage Storage Locations in Sri Lanka",
-    "hubsDescription": "Find trusted luggage storage hubs across Sri Lanka. Secure storage in Colombo, Kandy, Galle, Ella, Negombo, and Bandaranaike International Airport (BIA).",
+    "hubsDescription": "Find luggage storage hubs in Sri Lanka. Check availability, opening hours and prices before you book.",
     "hubTitle": "Luggage Storage at {name}, {location}",
     "hubDescription": "Store your bags securely at {name} in {location} ({address}). Verified, secure luggage storage in Sri Lanka.",
     "aboutTitle": "About Luggo",
@@ -266,7 +260,13 @@
     "staffLogin": "Staff sign in",
     "adminLogin": "Admin sign in",
     "staffScan": "Scan booking",
-    "offline": "You're offline"
+    "offline": "You're offline",
+    "siteTitle": "Luggo | Luggage Storage Network in Sri Lanka",
+    "siteDescription": "Luggo connects travellers with partner luggage storage hubs in Sri Lanka. Book online and pay by the hour.",
+    "ogTitle": "Luggo — Luggage Storage Network in Sri Lanka",
+    "ogDescription": "Hourly luggage storage with partner hubs in Sri Lanka. Book online.",
+    "partnersTitle": "Become a Luggo partner",
+    "partnersDescription": "Apply to host a Luggo luggage storage hub at your hotel, shop or café in Sri Lanka."
   },
   "Booking": {
     "pageTitle": "Book at {name}",
@@ -472,7 +472,8 @@
   "NotFound": {
     "title": "Page or booking not found",
     "body": "We couldn't find the page or booking you were looking for. It may have been removed, or you may not have permission to view it.",
-    "cta": "Go to dashboard"
+    "cta": "Go to dashboard",
+    "metaTitle": "Page not found"
   },
   "Offline": {
     "title": "You're offline",
@@ -486,11 +487,12 @@
     "about": "About",
     "locations": "Locations",
     "terms": "Terms",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "partners": "Partner with us"
   },
   "Preview": {
     "confirmed": "Booking confirmed!",
-    "hub": "Colombo Fort Hub",
+    "hub": "Example Hub",
     "active": "Active",
     "dropOff": "Drop-off",
     "dropOffTime": "Today, 2:00 PM",
@@ -498,7 +500,8 @@
     "pickUpTime": "Tomorrow, 9:00 AM",
     "showAtCounter": "Show at the hub counter",
     "sealed": "Bags sealed & secured",
-    "photoProof": "Photo proof uploaded"
+    "photoProof": "Photo proof uploaded",
+    "example": "Example booking"
   },
   "Cities": {
     "tag": "Coverage",
@@ -529,7 +532,8 @@
     "airport": {
       "name": "Airport / BIA",
       "desc": "Store bags when arriving early or leaving late."
-    }
+    },
+    "comingSoon": "Coming soon"
   },
   "Pricing": {
     "tag": "Pricing",
@@ -677,5 +681,87 @@
     "redirecting": "Redirecting to PayHere…",
     "openingPayment": "Opening the secure payment page",
     "payEarlyFee": "Pay early drop-off fee (LKR {amount})"
+  },
+  "Partners": {
+    "navLabel": "Partner page navigation",
+    "homeLabel": "Luggo home",
+    "backHome": "Back to home",
+    "eyebrow": "Partner with Luggo",
+    "title": "Turn spare space into a luggage storage hub.",
+    "intro": "Hotels, guesthouses, shops and cafés can host a Luggo hub. Travellers book and pay online, then drop their bags with you.",
+    "applyCta": "Apply now",
+    "benefitsTitle": "Why partner with us",
+    "benefits": {
+      "earn": {
+        "title": "Earn from space you already have",
+        "text": "Use a secure room or corner you are not using. We agree your share with you before your hub goes live."
+      },
+      "simple": {
+        "title": "Bookings and payments handled",
+        "text": "Travellers book and pay through Luggo. Your staff check bags in and out from a phone."
+      },
+      "setup": {
+        "title": "Set up with you",
+        "text": "We create your hub page and staff accounts, and provide tamper-proof seals and QR check-in."
+      }
+    },
+    "howTitle": "How to join",
+    "how": {
+      "apply": {
+        "title": "Apply",
+        "text": "Fill in the form below. It takes a few minutes."
+      },
+      "review": {
+        "title": "We review",
+        "text": "Our team contacts you to confirm the details and visit your space."
+      },
+      "live": {
+        "title": "Go live",
+        "text": "Once approved, we set up your hub and switch it on together."
+      }
+    },
+    "formTitle": "Apply to become a partner",
+    "formIntro": "Tell us about your business. We reply to every application.",
+    "invitedFor": "This invitation is for {name}.",
+    "inviteInvalid": "This invite link has expired or was already used. You can still apply with the form below.",
+    "fields": {
+      "businessName": "Business name",
+      "contactName": "Your name",
+      "phone": "Phone number",
+      "phoneHint": "Sri Lankan number, e.g. 071 234 5678",
+      "email": "Email address",
+      "city": "City or town",
+      "address": "Address",
+      "businessType": "Type of business",
+      "capacity": "Bags you could store",
+      "capacityHint": "A rough number is fine",
+      "openTime": "Opens at",
+      "closeTime": "Closes at",
+      "notes": "Anything else we should know?",
+      "notesHint": "For example: where the bags would be kept, security, or questions for us."
+    },
+    "types": {
+      "hotel": "Hotel",
+      "guesthouse": "Guesthouse or hostel",
+      "shop": "Shop",
+      "cafe": "Café or restaurant",
+      "travel": "Travel or tour business",
+      "other": "Other"
+    },
+    "submit": "Send application",
+    "submitting": "Sending…",
+    "consent": "By applying you agree that Luggo may contact you about this application.",
+    "successTitle": "Application received",
+    "successText": "Thank you. Our team will contact you using the details you gave.",
+    "errors": {
+      "invalid": "Please check the form. Some details are missing or not valid.",
+      "rateLimited": "Too many applications from this device or email. Please try again later.",
+      "inviteInvalid": "This invite link has expired or was already used. Reload the page and apply without it.",
+      "failed": "We could not save your application. Please try again."
+    },
+    "bandEyebrow": "For businesses",
+    "bandTitle": "Have space in one of these cities?",
+    "bandText": "Hotels, guesthouses, shops and cafés can host a Luggo hub. Apply in a few minutes and our team will contact you.",
+    "bandCta": "Partner with us"
   }
 }

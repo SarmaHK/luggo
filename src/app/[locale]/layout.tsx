@@ -2,34 +2,27 @@ import type { Metadata, Viewport } from 'next'
 import '../globals.css'
 import { MotionConfig } from '@/components/shared/MotionProvider'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
+import { getMessages, getTranslations } from 'next-intl/server'
 import { siteUrl } from '@/lib/site-url'
 import { BookingPausedBanner } from '@/components/shared/BookingPausedBanner'
 
-export const metadata: Metadata = {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await props.params
+  const t = await getTranslations({ locale, namespace: 'Meta' })
+  return {
   metadataBase: new URL(siteUrl),
   title: {
     template: '%s | Luggo',
-    default: 'Luggo | Luggage Storage Network in Sri Lanka — Store Bags Safely',
+    default: t('siteTitle'),
   },
-  description: 'Store your luggage at trusted spots across Sri Lanka. Luggo connects travellers with verified storage locations in Colombo, Kandy, Galle & more. Book in minutes.',
+  description: t('siteDescription'),
   keywords: [
     'luggage storage Sri Lanka',
-    'bag storage Colombo',
     'left luggage Sri Lanka',
     'short term luggage storage',
-    'store bags safely',
     'luggage storage network',
-    'luggage storage near me',
+    'store bags safely',
     'travel hands-free',
-    'verified storage locations',
-    'Colombo luggage storage',
-    'Kandy luggage storage',
-    'Galle luggage storage',
-    'Ella luggage storage',
-    'Negombo luggage storage',
-    'BIA Airport luggage storage',
-    'Colombo Airport bag storage',
   ],
   authors: [{ name: 'Luggo' }],
   appleWebApp: {
@@ -41,16 +34,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Luggo',
-    title: 'Luggo — Sri Lanka\'s #1 Luggage Storage Service',
-    description: 'Safe, affordable luggage storage at trusted hubs across Sri Lanka. Book in 60 seconds.',
-    images: [{ url: '/images/hubs/bia.png', width: 1200, height: 630, alt: 'Luggo Luggage Storage BIA Hub' }],
+    title: t('ogTitle'),
+    description: t('ogDescription'),
+    images: [{ url: '/images/hubs/bia.png', width: 1200, height: 630, alt: 'Luggo luggage storage' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Luggo — Luggage Storage Made Easy',
-    description: 'Safe, affordable luggage storage at hubs across Sri Lanka.',
+    title: t('ogTitle'),
+    description: t('ogDescription'),
     images: ['/images/hubs/bia.png'],
   },
+  }
 }
 
 export const viewport: Viewport = {

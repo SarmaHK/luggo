@@ -1,14 +1,17 @@
 import { StaffBottomNav } from '@/components/staff/StaffBottomNav'
 import { Metadata } from 'next'
+import { HidePausedBanner } from '@/components/shared/BookingPausedBanner'
 
 export const metadata: Metadata = {
   manifest: '/api/manifest/staff',
+  robots: { index: false, follow: false },
 }
 
 // Staff PWA layout — dedicated Android phone at hub
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-ocean-900 text-white pb-nav">
+      <HidePausedBanner />
       <main className="max-w-md mx-auto">{children}</main>
       <StaffBottomNav />
     </div>
