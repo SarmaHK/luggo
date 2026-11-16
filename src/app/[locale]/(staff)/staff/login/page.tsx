@@ -74,7 +74,7 @@ export default function StaffLoginPage() {
         </form>
       </div>
 
-      <p className="mt-8 text-white/40 text-xs text-center">
+      <p className="mt-8 text-white/70 text-xs text-center">
         Having trouble? Contact your hub manager.
       </p>
     </div>

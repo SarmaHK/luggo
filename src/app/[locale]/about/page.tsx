@@ -26,7 +26,7 @@ export default async function AboutPage() {
     <main className="min-h-screen bg-white text-ocean-900">
       <nav aria-label={t('navLabel')} className="border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" aria-label={t('homeLabel')}><Logo size="sm" /></Link>
+          <Link href="/" aria-label={t('homeLabel')} className="inline-flex min-h-11 items-center"><Logo size="sm" /></Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold"><ArrowLeft size={18} /> {t('backHome')}</Link>

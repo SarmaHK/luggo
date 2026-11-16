@@ -83,7 +83,7 @@ function NavBar() {
           <Link href="/dashboard" className="bg-brand text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brand/90 transition-colors">{t('findStorage')}</Link>
         </div>
         <button
-          className="md:hidden p-2 rounded-lg"
+          className="md:hidden flex min-h-11 min-w-11 items-center justify-center rounded-lg"
           onClick={() => setOpen(!open)}
           aria-label={open ? ts('closeMenu') : ts('openMenu')}
           aria-expanded={open}
@@ -131,7 +131,7 @@ function AppPreviewCard() {
       <div className="absolute inset-0 bg-brand/20 rounded-3xl blur-2xl scale-110" />
       <div className="relative bg-white/10 border border-white/20 backdrop-blur-sm rounded-3xl p-4 shadow-2xl">
         {/* Illustration only: not a real booking. */}
-        <span className="absolute -top-3 right-4 z-10 bg-amber-400 text-ocean-900 text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+        <span className="absolute -top-3 right-4 z-10 bg-amber-400 text-ocean-900 text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
           {t('example')}
         </span>
         <div className="bg-white rounded-2xl p-4 shadow-lg mb-3">
@@ -140,24 +140,24 @@ function AppPreviewCard() {
               <Check size={13} className="text-white" strokeWidth={3} />
             </div>
             <div>
-              <p className="text-[11px] font-extrabold text-ocean-900 leading-none">{t('confirmed')}</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">{t('hub')}</p>
+              <p className="text-xs font-extrabold text-ocean-900 leading-none">{t('confirmed')}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('hub')}</p>
             </div>
-            <span className="ml-auto text-[11px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-100">{t('active')}</span>
+            <span className="ml-auto text-xs bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-100">{t('active')}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-gray-50 rounded-xl p-2.5">
-              <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">{t('dropOff')}</p>
-              <p className="text-[11px] font-bold text-ocean-900">{t('dropOffTime')}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-0.5">{t('dropOff')}</p>
+              <p className="text-xs font-bold text-ocean-900">{t('dropOffTime')}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-2.5">
-              <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">{t('pickUp')}</p>
-              <p className="text-[11px] font-bold text-ocean-900">{t('pickUpTime')}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-0.5">{t('pickUp')}</p>
+              <p className="text-xs font-bold text-ocean-900">{t('pickUpTime')}</p>
             </div>
           </div>
           <div className="bg-gray-50 rounded-xl py-4 flex flex-col items-center gap-1.5">
             <QrCode size={28} className="text-ocean-900/30" />
-            <p className="text-[11px] text-gray-500 font-semibold">{t('showAtCounter')}</p>
+            <p className="text-xs text-gray-500 font-semibold">{t('showAtCounter')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2.5 bg-ocean-900 rounded-2xl px-3 py-2.5">
@@ -165,8 +165,8 @@ function AppPreviewCard() {
             <Check size={11} className="text-white" strokeWidth={3} />
           </div>
           <div>
-            <p className="text-[11px] font-bold text-white leading-none">{t('sealed')}</p>
-            <p className="text-[11px] text-white/70 mt-0.5">{t('photoProof')}</p>
+            <p className="text-xs font-bold text-white leading-none">{t('sealed')}</p>
+            <p className="text-xs text-white/70 mt-0.5">{t('photoProof')}</p>
           </div>
         </div>
       </div>
@@ -181,6 +181,9 @@ function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
   const tc = useTranslations('Cities')
   // Only rotate through cities with a live hub. With none live, the headline is the plain title.
   const cities = liveCities.filter(c => c !== 'airport').map(city => tc(`${city}.name`))
+  const tp = useTranslations('Partners')
+  // With no live hub, "Find storage" would open an empty list; recruit partners instead.
+  const noLiveHubs = liveCities.length === 0
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
@@ -242,9 +245,9 @@ function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
-              <Link href="/dashboard"
+              <Link href={noLiveHubs ? '/partners' : '/dashboard'}
                 className="flex items-center justify-center gap-2 bg-brand text-white font-bold px-8 py-4 rounded-2xl hover:bg-brand/90 active:scale-95 transition-all text-base shadow-xl shadow-brand/20">
-                {t('findStorage')} <ArrowRight size={18} />
+                {noLiveHubs ? tp('bandCta') : t('findStorage')} <ArrowRight size={18} />
               </Link>
               <a href="#how-it-works"
                 className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 text-white font-bold px-8 py-4 rounded-2xl hover:bg-white/15 transition-all text-base">
@@ -322,7 +325,7 @@ function ScrollArrow({ dir, onClick, visible, label }: { dir: 'left' | 'right'; 
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`absolute top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 hover:shadow-xl active:scale-90 transition-all ${dir === 'left' ? 'left-2' : 'right-2'}`}
+      className={`absolute top-1/2 -translate-y-1/2 z-10 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 hover:shadow-xl active:scale-90 transition-all ${dir === 'left' ? 'left-2' : 'right-2'}`}
     >
       {dir === 'left' ? <ChevronLeft size={18} className="text-gray-900" /> : <ChevronRight size={18} className="text-gray-900" />}
     </button>
@@ -456,11 +459,11 @@ function PricingSection({ rates }: { rates: BagRates }) {
               <motion.div key={item.key} variants={fadeUp}
                 className={`relative bg-white/5 border backdrop-blur-sm rounded-3xl p-8 text-center transition-all hover:bg-white/10 ${item.popular ? 'border-brand shadow-2xl shadow-brand/20' : 'border-white/10'}`}>
                 {item.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-[11px] font-black uppercase px-4 py-1.5 rounded-full">{t('popular')}</span>
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black uppercase px-4 py-1.5 rounded-full">{t('popular')}</span>
                 )}
                 <span className="text-5xl block mb-6" aria-hidden="true">{item.e}</span>
                 <h3 className="font-bold text-white text-xl mb-6">{tBags(`${item.key}.bag`)}</h3>
-                <p className="text-[11px] font-bold text-white/70 uppercase tracking-widest mb-1">{t('from')}</p>
+                <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">{t('from')}</p>
                 <div className="flex items-baseline justify-center gap-1.5">
                   <span className="text-3xl font-black text-white">LKR {item.r}</span>
                   <span className="text-sm font-bold text-white/70">{t('perHour')}</span>
@@ -498,7 +501,7 @@ function LocationsSection({ liveCities }: { liveCities: MarketingCity[] }) {
               <p className="font-bold text-ocean-900 text-sm">{tc(`${c.city}.name`)}</p>
               <p className="text-gray-600 text-xs mt-1">{tc(`${c.city}.desc`)}</p>
               {!live && (
-                <span className="inline-block mt-2 text-[11px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                <span className="inline-block mt-2 text-xs font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
                   {tc('comingSoon')}
                 </span>
               )}
