@@ -143,3 +143,16 @@ test('bookings cannot be inserted or deleted directly by customers', () => {
     assert.match(sql, /revoke insert, delete on public\.bookings from authenticated, anon/i, file)
   }
 })
+
+test('staff can only read users who have a booking at their hub', () => {
+  const fs = require('node:fs')
+  for (const file of ['schema.sql', 'supabase/schema.sql', 'supabase/security_fix_02_staff_users_hub_scope.sql']) {
+    const sql = fs.readFileSync(file, 'utf8')
+    const start = sql.indexOf('create policy "users: staff see own hub customers"')
+    assert.ok(start >= 0, file)
+    const policy = sql.slice(start, sql.indexOf(';', start))
+    assert.match(policy, /public\.bookings/, file)
+    assert.match(policy, /is_staff_at_hub\(b\.hub_id\)/, file)
+    assert.doesNotMatch(policy, /from public\.hub_staff hs\s+where hs\.user_id = auth\.uid\(\) and hs\.active = true\s*\)/i, file)
+  }
+})
