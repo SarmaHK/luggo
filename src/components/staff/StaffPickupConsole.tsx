@@ -427,8 +427,10 @@ export function StaffPickupConsole({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    maxLength={4}
-                    placeholder="Enter 4-digit code"
+                    maxLength={6}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Enter 6-digit code"
                     value={otpValue}
                     onChange={e => setOtpValue(e.target.value.replace(/\D/g, ''))}
                     className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-1 focus:ring-brand font-mono font-bold tracking-widest text-center"
@@ -436,7 +438,7 @@ export function StaffPickupConsole({
                   <Button
                     onClick={handleVerifyOTP}
                     loading={otpVerifying}
-                    disabled={otpValue.length < 4}
+                    disabled={otpValue.length < 6}
                     className="bg-brand text-white font-extrabold px-6"
                   >
                     Verify OTP
