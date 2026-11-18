@@ -40,7 +40,7 @@ export function SplashScreen({ onComplete, skipLabel = 'Skip' }: SplashScreenPro
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] bg-white flex items-center justify-center"
+      className="luggo-splash fixed inset-0 z-[100] bg-white flex items-center justify-center"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4, ease: 'easeInOut' }}

@@ -84,6 +84,10 @@ export default async function RootLayout(
   return (
     <html lang={locale}>
       <head>
+        {/* Returning visitors and reduced-motion users never get the splash. Decided before first paint
+            (the splash is in the server HTML), so it cannot flash white and fade out. Key matches SplashScreen. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('luggo_splash_seen')==='1'||matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.setAttribute('data-splash-skip','')}catch(e){}" }} />
+        <style dangerouslySetInnerHTML={{ __html: '[data-splash-skip] .luggo-splash{display:none!important}' }} />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#011a2e" />
         <meta name="msapplication-tap-highlight" content="no" />
