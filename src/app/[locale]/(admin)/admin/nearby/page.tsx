@@ -1,10 +1,8 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { NearbyPlaceForm } from '@/components/admin/NearbyPlaceForm'
 import { DeleteNearbyPlace } from '@/components/admin/DeleteNearbyPlace'
 import { MapPinned } from 'lucide-react'
-import { type UserRole } from '@/types/database'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Nearby Places — Admin' }
@@ -34,15 +32,7 @@ const CAT_EMOJI: Record<string, string> = {
 }
 
 export default async function AdminNearbyPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   const [{ data: hubs }, { data: places }] = await Promise.all([
     supabase

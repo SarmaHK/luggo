@@ -2,8 +2,14 @@ import type { Metadata, Viewport } from 'next'
 import '../globals.css'
 import { MotionConfig } from '@/components/shared/MotionProvider'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages, getTranslations } from 'next-intl/server'
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
+import { locales } from '@/i18n-config'
 import { siteUrl } from '@/lib/site-url'
+
+// Lets pages that do not read cookies or the request be built once per language and served from the cache.
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }))
+}
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
@@ -72,6 +78,7 @@ export default async function RootLayout(
     children
   } = props;
 
+  setRequestLocale(locale)
   const messages = await getMessages()
 
   return (

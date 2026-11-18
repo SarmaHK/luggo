@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StatCard } from '@/components/admin/StatCard'
 import {
@@ -12,74 +11,76 @@ import {
   TrendingUp,
   ShoppingBag,
 } from 'lucide-react'
-import { type UserRole } from '@/types/database'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Dashboard — Admin' }
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
+  const { supabase, profile } = await getAdminPageContext()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
-
-  // ── Stat queries (run in parallel) ──────────────────────────────────────
+  // ── All dashboard queries run together ──────────────────────────────────
+  // Revenue and the booking total come from one database function (see
+  // supabase/performance_migration.sql) instead of downloading every payment row.
   const [
     { count: activeStorage },
     { count: pickupRequested },
     { count: overstayed },
     { count: pendingComplaints },
     { count: totalHubs },
-    { count: totalBookings },
-    { data: allPaidPayments },
-    { data: todayPaidPayments },
+    totalsRpc,
+    { data: recentBookings },
   ] = await Promise.all([
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'active_storage'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pickup_requested'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'overstayed'),
     supabase.from('complaints').select('id', { count: 'exact', head: true }).in('status', ['open', 'in_review']),
     supabase.from('hubs').select('id', { count: 'exact', head: true }).eq('active', true),
-    supabase.from('bookings').select('id', { count: 'exact', head: true }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('payments') as any).select('amount').eq('status', 'paid'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('payments') as any)
-      .select('amount')
-      .eq('status', 'paid')
-      .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    (supabase.rpc as any)('admin_dashboard_totals') as Promise<{ data: { total_revenue: number; today_revenue: number; total_bookings: number } | null; error: unknown }>,
+    supabase
+      .from('bookings')
+      .select(`
+        id, status, total_price, created_at,
+        users ( name ),
+        hubs ( name )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(8) as unknown as Promise<{
+        data: {
+          id: string
+          status: string
+          total_price: number
+          created_at: string
+          users: { name: string } | null
+          hubs: { name: string } | null
+        }[] | null
+        error: unknown
+      }>,
   ])
 
-  const totalRevenue = (allPaidPayments as { amount: number }[] | null)
-    ?.reduce((s, p) => s + p.amount, 0) ?? 0
-
-  const todayRevenue = (todayPaidPayments as { amount: number }[] | null)
-    ?.reduce((s, p) => s + p.amount, 0) ?? 0
-
-  // ── Recent bookings ──────────────────────────────────────────────────────
-  const { data: recentBookings } = await supabase
-    .from('bookings')
-    .select(`
-      id, status, total_price, created_at,
-      users ( name ),
-      hubs ( name )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(8) as {
-      data: {
-        id: string
-        status: string
-        total_price: number
-        created_at: string
-        users: { name: string } | null
-        hubs: { name: string } | null
-      }[] | null
-      error: unknown
-    }
+  let totalRevenue = 0
+  let todayRevenue = 0
+  let totalBookings = 0
+  if (!totalsRpc.error && totalsRpc.data) {
+    totalRevenue = Number(totalsRpc.data.total_revenue)
+    todayRevenue = Number(totalsRpc.data.today_revenue)
+    totalBookings = Number(totalsRpc.data.total_bookings)
+  } else {
+    // Function not installed yet: the old way (slower, and grows with the number of payments).
+    const [{ count }, { data: allPaid }, { data: todayPaid }] = await Promise.all([
+      supabase.from('bookings').select('id', { count: 'exact', head: true }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('payments') as any).select('amount').eq('status', 'paid') as Promise<{ data: { amount: number }[] | null }>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('payments') as any)
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()) as Promise<{ data: { amount: number }[] | null }>,
+    ])
+    totalBookings = count ?? 0
+    totalRevenue = allPaid?.reduce((sum, p) => sum + p.amount, 0) ?? 0
+    todayRevenue = todayPaid?.reduce((sum, p) => sum + p.amount, 0) ?? 0
+  }
 
   const STATUS_COLOUR: Record<string, string> = {
     pending_payment:                  'bg-amber-100 text-amber-700',

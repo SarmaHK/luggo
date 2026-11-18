@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Link } from '@/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { SocialLinks } from '@/components/shared/SocialLinks'
@@ -14,8 +14,10 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   return { title: t('aboutTitle'), description: t('aboutDescription'), alternates: localizedAlternates(locale, '/about') }
 }
 
-export default async function AboutPage() {
-  const t = await getTranslations('About')
+export default async function AboutPage(props: { params: Promise<{ locale: string }> }) {
+  const { locale } = await props.params
+  setRequestLocale(locale)
+  const t = await getTranslations({ locale, namespace: 'About' })
   const steps = [
     { icon: MapPin, key: 'find' },
     { icon: Package, key: 'drop' },

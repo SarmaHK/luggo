@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { UserRoleSelector } from '@/components/admin/UserRoleSelector'
 import { type UserRole } from '@/types/database'
@@ -14,15 +13,7 @@ export default async function AdminUsersPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, userId, profile } = await getAdminPageContext()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = (supabase.from('users') as any)
@@ -50,14 +41,20 @@ export default async function AdminUsersPage(
   const bookingCounts: Record<string, number> = {}
 
   if (userIds.length > 0) {
+    // Counted in the database (supabase/performance_migration.sql); fall back to counting rows in code.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: bCounts } = await (supabase.from('bookings') as any)
-      .select('user_id')
-      .in('user_id', userIds) as { data: { user_id: string }[] | null; error: unknown }
-
-    bCounts?.forEach((b) => {
-      bookingCounts[b.user_id] = (bookingCounts[b.user_id] ?? 0) + 1
-    })
+    const rpc = await (supabase.rpc as any)('admin_user_booking_counts', { p_user_ids: userIds }) as { data: { user_id: string; bookings: number }[] | null; error: unknown }
+    if (!rpc.error && rpc.data) {
+      rpc.data.forEach((r) => { bookingCounts[r.user_id] = Number(r.bookings) })
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: bCounts } = await (supabase.from('bookings') as any)
+        .select('user_id')
+        .in('user_id', userIds) as { data: { user_id: string }[] | null; error: unknown }
+      bCounts?.forEach((b) => {
+        bookingCounts[b.user_id] = (bookingCounts[b.user_id] ?? 0) + 1
+      })
+    }
   }
 
   const ROLE_TABS: UserRole[] = ['customer', 'hub_staff', 'support_admin', 'ops_admin', 'master_admin']
@@ -120,7 +117,7 @@ export default async function AdminUsersPage(
                       <UserRoleSelector
                         userId={u.id}
                         currentRole={u.role}
-                        disabled={u.id === user?.id}
+                        disabled={u.id === userId}
                       />
                     </td>
                   </tr>
