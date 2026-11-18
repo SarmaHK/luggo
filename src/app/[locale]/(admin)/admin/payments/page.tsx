@@ -1,8 +1,6 @@
-import { redirect } from 'next/navigation'
 import { Link } from '@/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
-import { type UserRole } from '@/types/database'
 import { format } from 'date-fns'
 import type { Metadata } from 'next'
 
@@ -23,15 +21,7 @@ export default async function AdminPaymentsPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   const page   = Math.max(1, Number(searchParams.page ?? 1))
   const offset = (page - 1) * PAGE_SIZE

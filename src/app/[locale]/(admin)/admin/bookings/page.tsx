@@ -1,10 +1,9 @@
-import { redirect } from 'next/navigation'
 import { Link } from '@/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { HubFilter } from '@/components/admin/HubFilter'
 import { BookingsTable } from '@/components/admin/BookingsTable'
-import { type UserRole, type BookingStatus } from '@/types/database'
+import { type BookingStatus } from '@/types/database'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Bookings — Admin' }
@@ -23,24 +22,16 @@ export default async function AdminBookingsPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   const page   = Math.max(1, Number(searchParams.page ?? 1))
   const offset = (page - 1) * PAGE_SIZE
 
-  // Hubs for filter dropdown
-  const { data: hubs } = await supabase
+  // Hubs for the filter dropdown, fetched together with the bookings below
+  const hubsPromise = supabase
     .from('hubs')
     .select('id, name')
-    .order('name') as { data: { id: string; name: string }[] | null; error: unknown }
+    .order('name') as unknown as Promise<{ data: { id: string; name: string }[] | null; error: unknown }>
 
   // Build query
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,7 +48,7 @@ export default async function AdminBookingsPage(
   if (searchParams.status) query = query.eq('status', searchParams.status)
   if (searchParams.hub)    query = query.eq('hub_id', searchParams.hub)
 
-  const { data: bookings, count } = await query as {
+  const [{ data: hubs }, { data: bookings, count }] = await Promise.all([hubsPromise, query as Promise<{
     data: {
       id: string
       status: string
@@ -70,7 +61,7 @@ export default async function AdminBookingsPage(
       booking_bags: { id: string }[]
     }[] | null
     count: number | null
-  }
+  }>])
 
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 

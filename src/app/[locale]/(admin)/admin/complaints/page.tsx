@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation'
 import { Link } from '@/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { ComplaintActions } from '@/components/admin/ComplaintActions'
-import { type UserRole, type ComplaintStatus } from '@/types/database'
+import { type ComplaintStatus } from '@/types/database'
 import { format } from 'date-fns'
 import type { Metadata } from 'next'
 
@@ -23,15 +22,7 @@ export default async function AdminComplaintsPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = (supabase.from('complaints') as any)

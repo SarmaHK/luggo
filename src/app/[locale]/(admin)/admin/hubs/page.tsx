@@ -1,29 +1,24 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { HubCard } from '@/components/admin/HubCard'
 import { HubForm } from '@/components/admin/HubForm'
-import { type UserRole } from '@/types/database'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Hubs — Admin' }
 
 export default async function AdminHubsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
+  const { supabase, profile } = await getAdminPageContext()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  // Bag counts come from a database function (see supabase/performance_migration.sql). Fetched
+  // together with the hubs; the old per-booking query below is only a fallback.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bagCountsPromise = (supabase.rpc as any)('admin_hub_bag_counts') as Promise<{ data: { hub_id: string; bags: number }[] | null; error: unknown }>
 
   // Hubs with current booking counts
-  const { data: hubs } = await supabase
+  const hubsPromise = supabase
     .from('hubs')
     .select('id, name, alias, location, address, capacity, open_time, close_time, active, image_url, latitude, longitude')
-    .order('name') as {
+    .order('name') as unknown as Promise<{
       data: {
         id: string
         name: string
@@ -39,21 +34,26 @@ export default async function AdminHubsPage() {
         longitude: number | null
       }[] | null
       error: unknown
-    }
+    }>
 
-  // Active bags per hub
-  const { data: activeBags } = await supabase
-    .from('bookings')
-    .select('hub_id, booking_bags(id)')
-    .in('status', ['active_storage', 'pickup_requested', 'overstayed']) as {
-      data: { hub_id: string; booking_bags: { id: string }[] }[] | null
-      error: unknown
-    }
+  const [{ data: hubs }, bagCounts] = await Promise.all([hubsPromise, bagCountsPromise])
 
   const bagsByHub: Record<string, number> = {}
-  activeBags?.forEach((b) => {
-    bagsByHub[b.hub_id] = (bagsByHub[b.hub_id] ?? 0) + (b.booking_bags?.length ?? 0)
-  })
+  if (!bagCounts.error && bagCounts.data) {
+    bagCounts.data.forEach((r) => { bagsByHub[r.hub_id] = Number(r.bags) })
+  } else {
+    // Function not installed yet: count in code (slower, and grows with bookings).
+    const { data: activeBags } = await supabase
+      .from('bookings')
+      .select('hub_id, booking_bags(id)')
+      .in('status', ['active_storage', 'pickup_requested', 'overstayed']) as {
+        data: { hub_id: string; booking_bags: { id: string }[] }[] | null
+        error: unknown
+      }
+    activeBags?.forEach((b) => {
+      bagsByHub[b.hub_id] = (bagsByHub[b.hub_id] ?? 0) + (b.booking_bags?.length ?? 0)
+    })
+  }
 
   return (
     <AdminShell userName={profile?.name ?? '—'} userRole={profile?.role ?? 'admin'}>

@@ -1,24 +1,14 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StickerBatchForm } from '@/components/admin/StickerBatchForm'
 import { Tag } from 'lucide-react'
-import { type UserRole } from '@/types/database'
 import { format } from 'date-fns'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Stickers — Admin' }
 
 export default async function AdminStickersPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   const [{ data: hubs }, { data: batches }] = await Promise.all([
     supabase

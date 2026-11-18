@@ -4,6 +4,7 @@ import { Logo } from '@/components/ui/Logo'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { localizedAlternates } from '@/lib/i18n/seo'
+import { setRequestLocale } from 'next-intl/server'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
@@ -63,7 +64,8 @@ const TOC_ITEMS = [
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function TermsPage() {
+export default async function TermsPage(props: { params: Promise<{ locale: string }> }) {
+  setRequestLocale((await props.params).locale)
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}

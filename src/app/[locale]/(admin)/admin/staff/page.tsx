@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { requireAdmin } from '@/lib/admin/guard'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StaffForm } from '@/components/admin/StaffForm'
-import { type UserRole } from '@/types/database'
 import { format } from 'date-fns'
 import { UserCheck, UserX, Building2 } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -27,38 +26,24 @@ async function toggleStaffAction(staffId: string, active: boolean) {
 }
 
 export default async function AdminStaffPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
+  const { supabase, profile } = await getAdminPageContext()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
-
-  // Get all hubs for the form dropdown
-  const { data: hubs } = await supabase
-    .from('hubs')
-    .select('id, name, alias')
-    .eq('active', true)
-    .order('name') as {
-      data: { id: string; name: string; alias: string }[] | null
-      error: unknown
-    }
-
-  // Get all staff with user + hub info
-  const { data: staffList } = await supabase
-    .from('hub_staff')
-    .select(`
-      id, active, created_at,
-      users ( id, name, email, phone ),
-      hubs ( id, name, alias )
-    `)
-    .order('created_at', { ascending: false }) as {
-      data: StaffRow[] | null
-      error: unknown
-    }
+  // Hubs for the form dropdown and staff with user + hub info, fetched together
+  const [{ data: hubs }, { data: staffList }] = await Promise.all([
+    supabase
+      .from('hubs')
+      .select('id, name, alias')
+      .eq('active', true)
+      .order('name') as unknown as Promise<{ data: { id: string; name: string; alias: string }[] | null; error: unknown }>,
+    supabase
+      .from('hub_staff')
+      .select(`
+        id, active, created_at,
+        users ( id, name, email, phone ),
+        hubs ( id, name, alias )
+      `)
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: StaffRow[] | null; error: unknown }>,
+  ])
 
   const activeStaff   = staffList?.filter(s => s.active) ?? []
   const inactiveStaff = staffList?.filter(s => !s.active) ?? []
