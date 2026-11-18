@@ -670,8 +670,9 @@ create policy "hub_staff: admins full access" on public.hub_staff
 create policy "bookings: select own bookings" on public.bookings
   for select using (user_id = auth.uid());
 
-create policy "bookings: insert own bookings" on public.bookings
-  for insert with check (user_id = auth.uid());
+-- No customer INSERT policy: bookings are created only by the service-role RPC
+-- create_booking_with_payment (server computes price, checks capacity, adds payment).
+-- Letting clients insert directly would allow forged prices/status and skip payment.
 
 create policy "bookings: update own bookings" on public.bookings
   for update using (user_id = auth.uid())
@@ -680,6 +681,7 @@ create policy "bookings: update own bookings" on public.bookings
     and status in ('cancelled', 'active_storage', 'disputed', 'pickup_requested')
   );
 
+revoke insert, delete on public.bookings from authenticated, anon;
 revoke update on public.bookings from authenticated;
 grant update (status) on public.bookings to authenticated;
 

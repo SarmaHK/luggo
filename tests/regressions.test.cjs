@@ -134,3 +134,12 @@ test('a reminder already claimed by another request sends no notification', asyn
     if (previous === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = previous
   }
 })
+
+test('bookings cannot be inserted or deleted directly by customers', () => {
+  const fs = require('node:fs')
+  for (const file of ['schema.sql', 'supabase/schema.sql', 'supabase/security_fix_01_bookings_no_client_insert.sql']) {
+    const sql = fs.readFileSync(file, 'utf8')
+    assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /create policy "bookings: insert own bookings"/i, file)
+    assert.match(sql, /revoke insert, delete on public\.bookings from authenticated, anon/i, file)
+  }
+})
