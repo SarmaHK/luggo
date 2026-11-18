@@ -144,11 +144,17 @@ export async function POST(req: NextRequest) {
 
   const { data: existingProfile, error: profileLookupError } = await supabase
     .from('users' as never)
-    .select('id, email')
+    .select('id, email, role')
     .in('phone', phoneAliases(phone))
-    .maybeSingle() as { data: { id: string; email: string | null } | null; error: unknown }
+    .maybeSingle() as { data: { id: string; email: string | null; role: string | null } | null; error: unknown }
 
   if (profileLookupError) return NextResponse.json({ error: 'Unable to retrieve account.' }, { status: 500 })
+
+  // Staff and admin accounts must sign in with email + password only. A phone code
+  // (e.g. after a SIM swap) must never open one, nor alter its stored phone.
+  if (existingProfile && existingProfile.role !== 'customer') {
+    return NextResponse.json({ error: 'This number cannot be used for phone sign-in. Please sign in with your email and password.' }, { status: 403 })
+  }
   let accountEmail: string
 
   // Only sign in to an account whose phone was itself proven by SMS. A phone typed
