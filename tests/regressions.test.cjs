@@ -134,3 +134,77 @@ test('a reminder already claimed by another request sends no notification', asyn
     if (previous === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = previous
   }
 })
+
+test('bookings cannot be inserted or deleted directly by customers', () => {
+  const fs = require('node:fs')
+  for (const file of ['schema.sql', 'supabase/schema.sql', 'supabase/security_fix_01_bookings_no_client_insert.sql']) {
+    const sql = fs.readFileSync(file, 'utf8')
+    assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /create policy "bookings: insert own bookings"/i, file)
+    assert.match(sql, /revoke insert, delete on public\.bookings from authenticated, anon/i, file)
+  }
+})
+
+test('staff can only read users who have a booking at their hub', () => {
+  const fs = require('node:fs')
+  for (const file of ['schema.sql', 'supabase/schema.sql', 'supabase/security_fix_02_staff_users_hub_scope.sql']) {
+    const sql = fs.readFileSync(file, 'utf8')
+    const start = sql.indexOf('create policy "users: staff see own hub customers"')
+    assert.ok(start >= 0, file)
+    const policy = sql.slice(start, sql.indexOf(';', start))
+    assert.match(policy, /public\.bookings/, file)
+    assert.match(policy, /is_staff_at_hub\(b\.hub_id\)/, file)
+    assert.doesNotMatch(policy, /from public\.hub_staff hs\s+where hs\.user_id = auth\.uid\(\) and hs\.active = true\s*\)/i, file)
+  }
+})
+
+test('phone code cannot sign in to a staff or admin account', async () => {
+  process.env.OTP_HASH_SECRET = 'test-otp-secret'
+  // @supabase/ssr exports a non-configurable getter, so swap the whole cached module instead.
+  const ssrPath = require.resolve('@supabase/ssr')
+  const routePath = require.resolve('../src/app/api/auth/phone/verify/route.ts')
+  const originalSsrEntry = require.cache[ssrPath]
+  const originalRouteEntry = require.cache[routePath]
+  const originalService = serviceModule.createServiceClient
+  const sessionCalls = []
+  const run = async role => {
+    sessionCalls.length = 0
+    let generatedLink = false
+    serviceModule.createServiceClient = () => ({
+      rpc: async () => ({ data: { allowed: true, retry_after_ms: 0 }, error: null }),
+      auth: { admin: {
+        getUserById: async () => ({ data: { user: { phone: '+94771234567', phone_confirmed_at: '2026-01-01' } } }),
+        generateLink: async () => { generatedLink = true; return { data: null, error: new Error('should not be called') } },
+        createUser: async () => { generatedLink = true; return { data: null, error: new Error('should not be called') } },
+      } },
+      from: table => {
+        const query = { select: () => query, eq: () => query, is: () => query, gte: () => query, order: () => query, limit: () => query,
+          in: () => query, update: () => query, delete: () => query,
+          single: async () => ({ data: { otp: 'hash', expires_at: '2099-01-01' } }),
+          maybeSingle: async () => ({ data: table === 'users' ? { id, email: 'staff@luggo.lk', role } : null, error: null }),
+          then: resolve => Promise.resolve({ data: [{ phone: '+94771234567' }], error: null }).then(resolve) }
+        return query
+      },
+    })
+    require.cache[ssrPath] = { id: ssrPath, filename: ssrPath, loaded: true, exports: { createServerClient: () => ({ auth: {
+      getUser: async () => ({ data: { user: null } }),
+      verifyOtp: async () => { sessionCalls.push('verifyOtp'); return { error: null } },
+    } }) } }
+    delete require.cache[routePath]
+    const { POST } = require('../src/app/api/auth/phone/verify/route.ts')
+    const req = new NextRequest('http://localhost/api/auth/phone/verify', { method: 'POST', body: JSON.stringify({ phone: '0771234567', otp: '123456' }), headers: { 'content-type': 'application/json' } })
+    const response = await POST(req)
+    return { status: response.status, generatedLink, sessionCalls: [...sessionCalls] }
+  }
+  try {
+    for (const role of ['hub_staff', 'support_admin', 'ops_admin', 'master_admin']) {
+      assert.deepEqual(await run(role), { status: 403, generatedLink: false, sessionCalls: [] }, role)
+    }
+    const customer = await run('customer')
+    assert.notEqual(customer.status, 403)
+    assert.equal(customer.generatedLink, true)
+  } finally {
+    serviceModule.createServiceClient = originalService
+    if (originalSsrEntry) require.cache[ssrPath] = originalSsrEntry; else delete require.cache[ssrPath]
+    if (originalRouteEntry) require.cache[routePath] = originalRouteEntry; else delete require.cache[routePath]
+  }
+})

@@ -619,11 +619,13 @@ grant update (name, phone, nic_passport) on public.users to authenticated;
 create policy "users: admins see all" on public.users
   for select using (public.is_admin());
 
+-- Staff may read only customers who have a booking at the staff member's own hub.
 create policy "users: staff see own hub customers" on public.users
-  for select using (
+  for select to authenticated using (
     exists (
-      select 1 from public.hub_staff hs
-      where hs.user_id = auth.uid() and hs.active = true
+      select 1 from public.bookings b
+      where b.user_id = public.users.id
+        and public.is_staff_at_hub(b.hub_id)
     )
   );
 
@@ -667,8 +669,9 @@ create policy "hub_staff: admins full access" on public.hub_staff
 create policy "bookings: select own bookings" on public.bookings
   for select using (user_id = auth.uid());
 
-create policy "bookings: insert own bookings" on public.bookings
-  for insert with check (user_id = auth.uid());
+-- No customer INSERT policy: bookings are created only by the service-role RPC
+-- create_booking_with_payment (server computes price, checks capacity, adds payment).
+-- Letting clients insert directly would allow forged prices/status and skip payment.
 
 create policy "bookings: update own bookings" on public.bookings
   for update using (user_id = auth.uid())
@@ -677,6 +680,7 @@ create policy "bookings: update own bookings" on public.bookings
     and status in ('cancelled', 'active_storage', 'disputed', 'pickup_requested')
   );
 
+revoke insert, delete on public.bookings from authenticated, anon;
 revoke update on public.bookings from authenticated;
 grant update (status) on public.bookings to authenticated;
 
