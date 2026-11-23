@@ -30,11 +30,11 @@ const withPWA = withPWAInit({
 // inline bootstrap scripts; tighten with nonces later.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://*.clarity.ms https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com https://i.pravatar.cc https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com https://i.pravatar.cc https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com https://*.clarity.ms https://c.bing.com https://*.google-analytics.com https://*.googletagmanager.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clarity.ms https://c.bing.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
   "form-action 'self' https://sandbox.payhere.lk https://www.payhere.lk",
   "frame-ancestors 'none'",
   "base-uri 'self'",

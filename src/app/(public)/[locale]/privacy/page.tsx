@@ -47,7 +47,7 @@ export default async function PrivacyPage(props: { params: Promise<{ locale: str
           },
           {
             title: 'Data Sharing',
-            body: 'We do not sell your personal data. We share data only with hub operators (to fulfil your booking), payment processors, and SMS/email providers necessary to operate the Service.',
+            body: 'We do not sell your personal data. We share data with hub operators to fulfil your booking, with payment and messaging providers to operate the Service, and with the analytics providers described below if you allow optional analytics.',
           },
           {
             title: 'Data Retention',
@@ -58,8 +58,8 @@ export default async function PrivacyPage(props: { params: Promise<{ locale: str
             body: <>You have the right to access, correct, or delete your personal data. To exercise these rights, email <a href={`mailto:${CONTACT_EMAIL}`} className="inline-block py-3 -my-3 text-ocean-600 font-semibold underline">{CONTACT_EMAIL}</a>.</>,
           },
           {
-            title: 'Cookies',
-            body: 'We use essential cookies for authentication and session management only. No third-party tracking cookies are used.',
+            title: 'Cookies and Optional Analytics',
+            body: 'We use essential cookies for authentication and session management. If you allow optional analytics, Google Analytics measures visits and Microsoft Clarity records interactions on public marketing pages, where configured. These tools can use cookies to measure activity. You can change your choice at any time under Analytics settings on those pages.',
           },
           {
             title: 'Contact',
