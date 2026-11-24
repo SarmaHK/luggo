@@ -9,8 +9,9 @@
     "lint": "eslint .",
     "test": "node --require ./tests/register.cjs --test --experimental-test-isolation=none tests/*.test.cjs",
     "typecheck": "tsc --noEmit",
-    "setup:hooks": "node scripts/hooks/setup-hooks.js",
-    "secrets:scan": "gitleaks detect --redact --no-banner"
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "secrets:scan": "gitleaks git --redact --no-banner --config .gitleaks.toml",
+    "secrets:scan:staged": "gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml"
   },
   "engines": {
     "node": "22.x"

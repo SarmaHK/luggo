@@ -1,0 +1,2 @@
+# Git hooks must keep Unix line endings or they fail on macOS/Linux and Git Bash.
+.githooks/* text eol=lf

@@ -208,3 +208,10 @@ test('phone code cannot sign in to a staff or admin account', async () => {
     if (originalRouteEntry) require.cache[routePath] = originalRouteEntry; else delete require.cache[routePath]
   }
 })
+
+test('phone_otps is locked to the service role (RLS on, no client grants)', () => {
+  const sql = require('node:fs').readFileSync('supabase/security_fix_03_phone_otps_rls.sql', 'utf8').replace(/--.*$/gm, '')
+  assert.match(sql, /alter table public\.phone_otps enable row level security/i)
+  assert.match(sql, /revoke all on public\.phone_otps from anon, authenticated/i)
+  assert.doesNotMatch(sql, /create policy/i)
+})

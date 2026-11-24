@@ -34,3 +34,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Public site analytics
+
+Set `NEXT_PUBLIC_CLARITY_PROJECT_ID` to the Microsoft Clarity project ID and `NEXT_PUBLIC_GA_MEASUREMENT_ID` to the GA4 web stream measurement ID (`G-…`). Set either value in `.env.local` for local testing or in Vercel before building and deploying. Leaving a value blank disables that tag.
+
+The tags are available on the home, About, Partners, Privacy, and Terms pages. On one of these pages, open **Analytics settings** and select **Allow analytics** to load the configured tags. Use Clarity's live view and GA4 Realtime or DebugView to verify activity. In GA4, enable page changes based on browser history events in the web stream's enhanced measurement settings to measure navigation between public pages.
