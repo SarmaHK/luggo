@@ -1,0 +1,31 @@
+#!/bin/sh
+# Luggo pre-commit hook: block commits that contain secrets.
+# Enable once per clone with:  npm run setup:hooks
+# Works with Git Bash / WSL on Windows, macOS and Linux (POSIX sh only).
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo ""
+  echo "  [secret scan] gitleaks is not installed, so this commit was blocked."
+  echo "  Install it (see docs/SECRET_SCANNING.md), for example:"
+  echo "    macOS:    brew install gitleaks"
+  echo "    Windows:  winget install Gitleaks.Gitleaks   (or: scoop install gitleaks)"
+  echo "    Linux:    download from https://github.com/gitleaks/gitleaks/releases"
+  echo "  Then run:  gitleaks version   (needs v8.19 or newer)"
+  echo "  CI scans every pull request too, so skipping the hook does not skip the check."
+  echo ""
+  exit 1
+fi
+
+# --redact: matched secret values are never printed.
+if ! gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml; then
+  echo ""
+  echo "  [secret scan] Possible secret found in the staged changes. Commit blocked."
+  echo "  1. Remove the value from the file and load it from an environment variable."
+  echo "  2. If it was a REAL credential, treat it as exposed and rotate it"
+  echo "     (docs/SECRET_SCANNING.md, 'If a secret is found')."
+  echo "  3. If it is a verified false positive, add its fingerprint to .gitleaksignore."
+  echo "  Do not use 'git commit --no-verify' to get around this."
+  echo ""
+  exit 1
+fi
+exit 0

@@ -1,0 +1,63 @@
+# Gitleaks configuration for Luggo.
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+#
+# Start from the official, maintained ruleset (AWS, GitHub, JWT, private keys, generic
+# API keys, ...). Only add what the default rules cannot know about.
+title = "Luggo gitleaks config"
+
+[extend]
+useDefault = true
+
+# Luggo-specific rule 1: the default rules rely on entropy and vendor prefixes, so a
+# password or token assigned to one of OUR server-only variable names could slip
+# through. This catches "NAME=value" / "NAME: 'value'" for those names only.
+# Values written as obvious placeholders (your-..., change-me, <...>) are ignored.
+[[rules]]
+id = "luggo-server-secret-assignment"
+description = "Server-only Luggo secret assigned a literal value"
+regex = '''(?i)\b(?:SUPABASE_SERVICE_ROLE_KEY|PAYHERE_MERCHANT_SECRET|OTP_HASH_SECRET|CRON_SECRET|TEXTLK_API_TOKEN|EMAIL_PASS|SEED_USER_PASSWORD)\b[\x22\x27]?\s*[:=]\s*[\x22\x27]?([^\s\x22\x27<>$#{}\[\]()]{16,})'''
+secretGroup = 1
+entropy = 3.0
+keywords = [
+  "supabase_service_role_key",
+  "payhere_merchant_secret",
+  "otp_hash_secret",
+  "cron_secret",
+  "textlk_api_token",
+  "email_pass",
+  "seed_user_password",
+]
+
+  [rules.allowlist]
+  description = "Placeholders, and dummy values in automated tests"
+  regexes = [
+    '''(?i)^(?:your|change|replace|example|placeholder|dummy|sample|test|xxx|todo)[-_a-z0-9]*$''',
+  ]
+  # Scoped to THIS rule only: the default rules still scan the tests/ folder.
+  paths = [
+    '''^tests/''',
+  ]
+
+# Luggo-specific rule 2: hard-coded account passwords in scripts/SQL/code (older Luggo
+# seed and reset scripts did this). The default rules usually miss them because
+# passwords are short and low entropy. Fires only on a quoted literal assigned to a
+# password-like name. (\x22 is a double quote, \x27 a single quote.)
+[[rules]]
+id = "luggo-hardcoded-password"
+description = "Literal password assigned in source"
+regex = '''(?i)\b[a-z_]*(?:password|passwd|pwd)[a-z_]*[\x22\x27]?\s*[:=]\s*[\x22\x27]([^\s\x22\x27<>$#{}\[\]()]{10,})[\x22\x27]'''
+secretGroup = 1
+entropy = 2.5
+keywords = ["password", "passwd", "pwd"]
+
+  [rules.allowlist]
+  description = "Placeholders, UI text and dummy test values"
+  regexes = [
+    '''(?i)^(?:your|change|replace|example|placeholder|dummy|sample|test|xxx|todo|enter)[-_a-z0-9]*$''',
+  ]
+  paths = [
+    '''^tests/''',
+  ]
+
+# Verified false positives are recorded in .gitleaksignore (by fingerprint), never by
+# excluding whole files or folders here. See docs/SECRET_SCANNING.md.

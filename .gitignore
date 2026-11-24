@@ -32,7 +32,11 @@ npm_install_error.log
 supabase/.temp/
 
 
-# local env files
+# local env files (only the placeholder example is tracked)
+.env
+.env.*
+!.env.example
+!.env.local.example
 .env.local
 .env*.local
 
