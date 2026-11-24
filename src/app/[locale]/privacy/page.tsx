@@ -4,13 +4,15 @@ import { Logo } from '@/components/ui/Logo'
 import { ChevronLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { localizedAlternates } from '@/lib/i18n/seo'
+import { setRequestLocale } from 'next-intl/server'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
   return { title: 'Privacy Policy', alternates: localizedAlternates(locale, '/privacy') }
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage(props: { params: Promise<{ locale: string }> }) {
+  setRequestLocale((await props.params).locale)
   return (
     <div className="min-h-screen bg-white">
       <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">

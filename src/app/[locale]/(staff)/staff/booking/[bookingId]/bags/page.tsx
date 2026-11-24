@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Logo } from '@/components/ui/Logo'
 import { BagRegistrationForm } from '@/components/staff/BagRegistrationForm'
 import { type BagType } from '@/types/database'
-import { allocateSlotForBooking } from '@/lib/staff/actions'
+import { allocateSlotForBooking } from '@/lib/staff/slots'
 import { getHubBagRates } from '@/lib/utils/hubPricing'
 import type { Metadata } from 'next'
 

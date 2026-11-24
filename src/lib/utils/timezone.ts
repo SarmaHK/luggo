@@ -29,3 +29,14 @@ export function formatDateSLT(dateStr: string | Date, locale = 'en'): string {
     year: 'numeric'
   }, locale)
 }
+
+/**
+ * Start and end of the current Sri Lanka calendar day. Sri Lanka has no daylight saving
+ * (always UTC+05:30), and the server runs in UTC, so "today" must not be taken from the
+ * server's own clock.
+ */
+export function colomboDayRange(now: Date = new Date()): { start: Date; end: Date } {
+  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+  const start = new Date(`${ymd}T00:00:00+05:30`)
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1) }
+}

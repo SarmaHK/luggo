@@ -1,23 +1,14 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { HubPricingCard } from '@/components/admin/HubPricingCard'
 import { DEFAULT_BAG_RATES, type BagRates } from '@/lib/utils/pricing'
-import { type UserRole, type BagType } from '@/types/database'
+import { type BagType } from '@/types/database'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Pricing — Admin' }
 
 export default async function AdminPricingPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  const { supabase, profile } = await getAdminPageContext()
 
   const { data: hubs } = await supabase
     .from('hubs')

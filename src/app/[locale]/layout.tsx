@@ -2,8 +2,14 @@ import type { Metadata, Viewport } from 'next'
 import '../globals.css'
 import { MotionConfig } from '@/components/shared/MotionProvider'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages, getTranslations } from 'next-intl/server'
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server'
+import { locales } from '@/i18n-config'
 import { siteUrl } from '@/lib/site-url'
+
+// Lets pages that do not read cookies or the request be built once per language and served from the cache.
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }))
+}
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await props.params
@@ -72,11 +78,16 @@ export default async function RootLayout(
     children
   } = props;
 
+  setRequestLocale(locale)
   const messages = await getMessages()
 
   return (
     <html lang={locale}>
       <head>
+        {/* Returning visitors and reduced-motion users never get the splash. Decided before first paint
+            (the splash is in the server HTML), so it cannot flash white and fade out. Key matches SplashScreen. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('luggo_splash_seen')==='1'||matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.setAttribute('data-splash-skip','')}catch(e){}" }} />
+        <style dangerouslySetInnerHTML={{ __html: '[data-splash-skip] .luggo-splash{display:none!important}' }} />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#011a2e" />
         <meta name="msapplication-tap-highlight" content="no" />

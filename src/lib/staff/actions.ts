@@ -10,6 +10,11 @@ import { type BagType } from '@/types/database'
 import { calculateLateFee, calculateEarlyCheckinDecision, calculateBookingPrice } from '@/lib/utils/pricing'
 import { getHubBagRates } from '@/lib/utils/hubPricing'
 import { BOOKINGS_PAUSED, BOOKINGS_PAUSED_MESSAGE } from '@/lib/booking-pause'
+import { hitRateLimit } from '@/lib/security/rateLimit'
+import { colomboDayRange } from '@/lib/utils/timezone'
+import { hubProfileUpdateSchema, walkInBookingSchema, walkInPickupWindowError } from '@/lib/validators/staff'
+import { generatePickupOtp, hashPickupOtp, pickupOtpMatches } from '@/lib/staff/pickupOtp'
+import { allocateSlotForBooking } from '@/lib/staff/slots'
 
 
 // ─────────────────────────────────────────────
@@ -26,6 +31,7 @@ async function requireStaff() {
     .select('hub_id, hubs(alias)')
     .eq('user_id', user.id)
     .eq('active', true)
+    .order('created_at', { ascending: true })
     .limit(1) as {
       data: { hub_id: string; hubs: { alias: string } | null }[] | null
       error: PostgrestError | null
@@ -59,6 +65,7 @@ async function bookingIsAtHub(svc: SupabaseClient, bookingId: string, hubId: str
     .from('bookings')
     .select('hub_id')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .maybeSingle() as { data: { hub_id: string } | null }
   return data?.hub_id === hubId
 }
@@ -154,6 +161,7 @@ export async function markArrived(
     .from('bookings' as never)
     .select('start_time, end_time')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { start_time: string; end_time: string } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -460,14 +468,17 @@ export async function finalizeCheckInAction(
 // ─────────────────────────────────────────────
 // WAIVE LATE FEE  overstayed → ready_for_release (staff override, supervisor only)
 // ─────────────────────────────────────────────
-async function checkIsSupervisor(userId: string, svc: SupabaseClient): Promise<boolean> {
-  const { data: userRow } = await svc
-    .from('users')
-    .select('role')
-    .eq('id', userId)
-    .single()
-  const allowed = ['support_admin', 'ops_admin', 'master_admin']
-  return !!(userRow && allowed.includes(userRow.role))
+// A supervisor is an active staff member at THIS hub flagged is_supervisor (set by an admin).
+// The earlier rule demanded an admin role as well as the hub_staff role, which no account can have.
+async function checkIsSupervisor(userId: string, hubId: string, svc: SupabaseClient): Promise<boolean> {
+  const { data } = await svc
+    .from('hub_staff' as never)
+    .select('is_supervisor')
+    .eq('user_id', userId)
+    .eq('hub_id', hubId)
+    .eq('active', true)
+    .maybeSingle() as { data: { is_supervisor: boolean } | null }
+  return data?.is_supervisor === true
 }
 
 export async function waiveAndCompletePickupAction(bookingId: string): Promise<void> {
@@ -489,7 +500,7 @@ export async function waiveAndCompletePickup(
   const { svc, hubId, userId } = await requireStaff()
 
   // 1. Verify supervisor role
-  const isSupervisor = await checkIsSupervisor(userId, svc)
+  const isSupervisor = await checkIsSupervisor(userId, hubId, svc)
   if (!isSupervisor) {
     return { error: 'Unauthorized. Supervisor or Admin credentials required.' }
   }
@@ -508,6 +519,17 @@ export async function waiveAndCompletePickup(
     return { error: `Staff override only applies to overstayed bookings. Current: ${booking.status}` }
   }
 
+  // Set booking to ready_for_release (so staff must complete handover checklist).
+  // Conditional on the status read above so two devices cannot both waive the same fee.
+  const { data: claimed } = await svc
+    .from('bookings' as never)
+    .update({ status: 'ready_for_release' })
+    .eq('id', bookingId)
+    .eq('hub_id', hubId)
+    .in('status', ['overstayed', 'late_fee_pending'])
+    .select('id') as { data: { id: string }[] | null }
+  if (!claimed?.length) return { error: 'This booking was already processed. Refresh the page.' }
+
   // Void any pending late fee payments
   await svc
     .from('payments' as never)
@@ -524,9 +546,6 @@ export async function waiveAndCompletePickup(
     type: 'late_fee',
     gateway_ref: `WAIVED_BY_SUPERVISOR_${userId}`
   })
-
-  // Set booking to ready_for_release (so staff must complete handover checklist)
-  await svc.from('bookings' as never).update({ status: 'ready_for_release' }).eq('id', bookingId)
 
   // Audit
   await svc.rpc('write_audit_log', {
@@ -696,28 +715,35 @@ export async function completePickup(
 // ─────────────────────────────────────────────
 // CREATE WALK-IN BOOKING
 // ─────────────────────────────────────────────
-export async function createWalkInBooking(input: {
+export async function createWalkInBooking(rawInput: {
   name: string
   phone: string
   nicPassportRef: string
-  bagCount: number
+  bagCount?: number
   bagTypes: BagType[]
   expectedPickupTime: string
   paymentMethod: 'pay_online' | 'pay_at_hub'
-  hubId: string
+  hubId?: string
 }): Promise<{ bookingId?: string; error?: string }> {
   if (BOOKINGS_PAUSED) return { error: BOOKINGS_PAUSED_MESSAGE }
-  const { svc, userId } = await requireStaff()
 
-  // Calculate pricing
+  const parsed = walkInBookingSchema.safeParse(rawInput)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid walk-in details.' }
+  const input = parsed.data
+
+  // The hub is the staff member's own. A hub ID sent by the browser is ignored.
+  const { svc, userId, hubId } = await requireStaff()
+
   const now = new Date()
   const expected = new Date(input.expectedPickupTime)
-  
+  const windowError = walkInPickupWindowError(expected, now)
+  if (windowError) return { error: windowError }
+
   // Fetch hub capacity
   const { data: hub } = await svc
     .from('hubs' as never)
     .select('capacity')
-    .eq('id', input.hubId)
+    .eq('id', hubId)
     .single() as { data: { capacity: number } | null }
 
   if (!hub) return { error: 'Hub not found.' }
@@ -726,7 +752,7 @@ export async function createWalkInBooking(input: {
   const { data: overlappingBookings } = await svc
     .from('bookings' as never)
     .select('id, booking_bags(id)')
-    .eq('hub_id', input.hubId)
+    .eq('hub_id', hubId)
     .not('status', 'in', '("cancelled","expired","completed")')
     .lt('start_time', expected.toISOString())
     .gt('end_time', now.toISOString()) as { data: { id: string; booking_bags: unknown[] }[] | null }
@@ -739,7 +765,7 @@ export async function createWalkInBooking(input: {
 
   const { calculateBagPriceForHours } = await import('@/lib/utils/pricing')
   const hours = Math.max(1, Math.ceil((expected.getTime() - now.getTime()) / (1000 * 60 * 60)))
-  const walkInRates = await getHubBagRates(svc, input.hubId)
+  const walkInRates = await getHubBagRates(svc, hubId)
   const totalPrice = input.bagTypes.reduce((sum, type) => sum + calculateBagPriceForHours(type, hours, walkInRates), 0)
 
   const qrCode = `WI-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
@@ -751,14 +777,15 @@ export async function createWalkInBooking(input: {
     .eq('email', 'walkin@luggo.lk')
     .single() as { data: { id: string } | null }
 
-  const walkinUserId = walkinUser?.id || '766d7147-0934-41eb-be18-50757f9569bb'
+  if (!walkinUser) return { error: 'The walk-in guest account is missing. Contact Luggo support.' }
+  const walkinUserId = walkinUser.id
 
   // Insert Booking
   const { data: booking, error: bookingError } = await svc
     .from('bookings' as never)
     .insert({
       user_id: walkinUserId,
-      hub_id: input.hubId,
+      hub_id: hubId,
       status: input.paymentMethod === 'pay_at_hub' ? 'confirmed' : 'pending_payment',
       start_time: now.toISOString(),
       end_time: expected.toISOString(),
@@ -830,87 +857,6 @@ export async function createWalkInBooking(input: {
   }
 
   return { bookingId: booking.id }
-}
-
-// ─────────────────────────────────────────────
-// ALLOCATE STORAGE SLOT FOR BOOKING (Timezone-safe)
-// ─────────────────────────────────────────────
-// A unique DB index (hub_id, slot_number) guards against two concurrent
-// registrations at the same hub computing and claiming the same slot. On a
-// conflict we just recompute against the now-current occupancy and retry.
-export async function allocateSlotForBooking(
-  supabase: SupabaseClient,
-  hubId: string,
-  bookingId: string,
-  attemptsLeft = 3
-): Promise<number> {
-  // 1. Fetch occupied slot numbers
-  const { data: bookings, error } = await supabase
-    .from('bookings')
-    .select('slot_number, status, end_time')
-    .eq('hub_id', hubId)
-    .not('slot_number', 'is', null)
-    .in('status', [
-      'confirmed',
-      'pending_payment',
-      'arrived',
-      'identity_verified',
-      'sealing_in_progress',
-      'sealed_waiting_user_confirmation',
-      'active_storage',
-      'pickup_requested',
-      'overstayed',
-      'late_fee_pending'
-    ])
-
-  if (error) {
-    throw new Error(`Failed to query slots: ${error.message}`)
-  }
-
-  const now = new Date()
-  const occupiedSlots = new Set<number>()
-  if (bookings) {
-    for (const b of bookings) {
-      if (b.status === 'confirmed' || b.status === 'pending_payment') {
-        // If booking pickup time has passed, release slot (meaning we don't count it as occupied)
-        const pickupTime = new Date(b.end_time)
-        if (pickupTime <= now) {
-          continue
-        }
-      }
-      occupiedSlots.add(b.slot_number)
-    }
-  }
-
-  // 2. Find first free slot between 1 and 20
-  let allocatedSlot = 0
-  for (let i = 1; i <= 20; i++) {
-    if (!occupiedSlots.has(i)) {
-      allocatedSlot = i
-      break
-    }
-  }
-
-  if (allocatedSlot === 0) {
-    throw new Error('All 20 storage slots are currently occupied at this hub.')
-  }
-
-  // 3. Save allocated slot
-  const { error: updateError } = await supabase
-    .from('bookings')
-    .update({ slot_number: allocatedSlot })
-    .eq('id', bookingId)
-
-  if (updateError) {
-    // Unique violation (Postgres code 23505) means another concurrent
-    // registration just took this slot — recompute occupancy and retry.
-    if (updateError.code === '23505' && attemptsLeft > 0) {
-      return allocateSlotForBooking(supabase, hubId, bookingId, attemptsLeft - 1)
-    }
-    throw new Error(`Failed to save slot allocation: ${updateError.message}`)
-  }
-
-  return allocatedSlot
 }
 
 // ─────────────────────────────────────────────
@@ -1019,6 +965,7 @@ export async function registerBags(
     .from('bookings' as never)
     .select('id, user_id, hubs(name), users(phone)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { user_id: string; hubs: { name: string } | null; users: { phone: string | null } | null } | null }
 
   if (bookingDetail) {
@@ -1108,7 +1055,7 @@ export async function resolveIncidentReport(
 ): Promise<{ error?: string }> {
   const { svc, userId, hubId } = await requireStaff()
 
-  const isSupervisor = await checkIsSupervisor(userId, svc)
+  const isSupervisor = await checkIsSupervisor(userId, hubId, svc)
   if (!isSupervisor) {
     return { error: 'Unauthorized. Only supervisors/admins can resolve incidents.' }
   }
@@ -1185,7 +1132,22 @@ export async function waiveLateFeeSupervisor(
 export async function getHubRevenue() {
   const { supabase, hubId } = await requireStaff()
 
-  // Fetch all successful payments for bookings at this hub
+  // Totals come from a database function (supabase/staff_hardening_migration.sql).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpc = await (supabase.rpc as any)('hub_revenue_totals', { p_hub_id: hubId }) as {
+    data: { total: number; recent_total: number; payment_count: number; by_type: Record<string, number> } | null
+    error: unknown
+  }
+  if (!rpc.error && rpc.data) {
+    return {
+      total: Number(rpc.data.total),
+      recentTotal: Number(rpc.data.recent_total),
+      byType: rpc.data.by_type ?? {},
+      paymentCount: Number(rpc.data.payment_count),
+    }
+  }
+
+  // Function not installed yet: add up the payments in code (slower, and grows with the number of payments).
   const { data: payments, error } = await supabase
     .from('payments')
     .select('amount, created_at, type, bookings!inner(hub_id)')
@@ -1195,26 +1157,16 @@ export async function getHubRevenue() {
   if (error) return { error: error.message }
 
   const payArr = payments || []
-
-  // Aggregate stats
   const total = payArr.reduce((sum, p) => sum + p.amount, 0)
   const byType = payArr.reduce((acc, p) => {
     acc[p.type] = (acc[p.type] || 0) + p.amount
     return acc
   }, {} as Record<string, number>)
-
-  // Last 30 days
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const recent = payArr.filter(p => new Date(p.created_at) >= thirtyDaysAgo)
-  const recentTotal = recent.reduce((sum, p) => sum + p.amount, 0)
+  const recentTotal = payArr.filter(p => new Date(p.created_at) >= thirtyDaysAgo).reduce((sum, p) => sum + p.amount, 0)
 
-  return {
-    total,
-    recentTotal,
-    byType,
-    paymentCount: payArr.length
-  }
+  return { total, recentTotal, byType, paymentCount: payArr.length }
 }
 
 export async function getHubBookings(filters?: { status?: string }) {
@@ -1244,13 +1196,36 @@ export async function updateHubProfile(updates: {
   active?: boolean
   active_days?: string[]
 }) {
+  // Only whitelisted fields, validated. Capacity, alias, location, rates and the like are admin-only.
+  const parsed = hubProfileUpdateSchema.safeParse(updates)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Invalid hub details.' }
+  const { active, ...rest } = parsed.data
+
   const { svc, hubId } = await requireStaff()
+  const changes: Record<string, unknown> = { ...rest }
 
-  const { error } = await svc
-    .from('hubs')
-    .update(updates)
-    .eq('id', hubId)
+  if (active !== undefined) {
+    const { data: hub } = await svc
+      .from('hubs')
+      .select('active, staff_paused')
+      .eq('id', hubId)
+      .maybeSingle() as { data: { active: boolean; staff_paused: boolean | null } | null }
+    if (!hub) return { error: 'Hub not found.' }
+    if (active !== hub.active) {
+      if (active) {
+        // Staff may only reopen a hub they paused themselves; one an admin has not switched on stays off.
+        if (!hub.staff_paused) return { error: 'This hub was switched off by an admin. Contact Luggo to reopen it.' }
+        changes.active = true
+        changes.staff_paused = false
+      } else {
+        changes.active = false
+        changes.staff_paused = true
+      }
+    }
+  }
 
+  if (Object.keys(changes).length === 0) return { success: true }
+  const { error } = await svc.from('hubs').update(changes).eq('id', hubId)
   if (error) return { error: error.message }
   return { success: true }
 }
@@ -1460,16 +1435,31 @@ export async function completePickupWithCash(
   const lateFeeAmount = calculateLateFee(booking.booking_bags, start, end, now, cashRates)
 
   if (lateFeeAmount > 0) {
-    // 1. Create a paid payment record for cash
-    await svc
+    // 1. Create a paid payment record for cash (once: a double tap must not record it twice).
+    //    It carries the collecting staff member and time so it appears in their cash reconciliation.
+    const { data: alreadyRecorded } = await svc
       .from('payments' as never)
-      .insert({
-        booking_id: bookingId,
-        amount: lateFeeAmount,
-        status: 'paid',
-        type: 'late_fee',
-        gateway_ref: 'CASH_PAYMENT_BYPASS'
-      })
+      .select('id')
+      .eq('booking_id', bookingId)
+      .eq('type', 'late_fee')
+      .eq('status', 'paid')
+      .eq('gateway_ref', 'CASH_PAYMENT_BYPASS')
+      .limit(1) as { data: { id: string }[] | null }
+    if (!alreadyRecorded?.length) {
+      const { error: cashError } = await svc
+        .from('payments' as never)
+        .insert({
+          booking_id: bookingId,
+          amount: lateFeeAmount,
+          status: 'paid',
+          type: 'late_fee',
+          gateway_ref: 'CASH_PAYMENT_BYPASS',
+          method: 'cash',
+          collected_by_staff_id: userId,
+          collected_at: new Date().toISOString()
+        }) as { error: { message: string } | null }
+      if (cashError) return { error: `Failed to record the cash payment: ${cashError.message}` }
+    }
 
     // 2. Cancel/fail any pending online payments for this late_fee
     await svc
@@ -1591,6 +1581,7 @@ export async function processStandardCheckInAction(
     .from('bookings' as never)
     .select('status, start_time, end_time, total_price, booking_bags(bag_type)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; start_time: string; end_time: string; total_price: number; booking_bags: { bag_type: BagType }[] } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -1680,6 +1671,7 @@ export async function processCashEarlyCheckInAction(
     .from('bookings' as never)
     .select('status, start_time, end_time, total_price, booking_bags(bag_type)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; start_time: string; end_time: string; total_price: number; booking_bags: { bag_type: BagType }[] } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -1807,6 +1799,7 @@ export async function processOnlineEarlyCheckInAction(
     .from('bookings' as never)
     .select('status, start_time, end_time, total_price, booking_bags(bag_type)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; start_time: string; end_time: string; total_price: number; booking_bags: { bag_type: BagType }[] } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -1902,6 +1895,7 @@ export async function processOnlineEarlyCheckInAction(
     .from('bookings' as never)
     .select('users(phone)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { users: { phone: string | null } | null } | null }
 
   if (bookingDetail?.users?.phone) {
@@ -1944,6 +1938,7 @@ export async function processShiftBookingCheckInAction(
     .from('bookings' as never)
     .select('status, start_time, end_time, total_price, booking_bags(bag_type)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; start_time: string; end_time: string; total_price: number; booking_bags: { bag_type: BagType }[] } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -2048,7 +2043,7 @@ export async function processSupervisorOverrideCheckInAction(
   // 1. The account performing this override must itself be a supervisor —
   // a regular staff member cannot authorize on a supervisor's behalf just by
   // knowing/selecting their name (see checkIsSupervisor usage elsewhere).
-  const isSupervisor = await checkIsSupervisor(userId, svc)
+  const isSupervisor = await checkIsSupervisor(userId, hubId, svc)
   if (!isSupervisor) {
     return { error: 'Unauthorized. A supervisor must log in and perform this override themselves.' }
   }
@@ -2059,6 +2054,7 @@ export async function processSupervisorOverrideCheckInAction(
     .from('bookings' as never)
     .select('status, start_time, end_time, total_price, booking_bags(bag_type)')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; start_time: string; end_time: string; total_price: number; booking_bags: { bag_type: BagType }[] } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -2149,6 +2145,7 @@ export async function completeOnlineEarlyCheckInAction(
     .from('bookings' as never)
     .select('status, early_checkin_payment_id')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string; early_checkin_payment_id: string | null } | null }
 
   if (!booking) return { error: 'Booking not found.' }
@@ -2210,14 +2207,17 @@ export async function completeOnlineEarlyCheckInAction(
 }
 
 export async function getSupervisorsAction(): Promise<{ supervisors?: { id: string; name: string }[]; error?: string }> {
-  const { svc } = await requireStaff()
+  const { svc, hubId } = await requireStaff()
+  // Only this hub's supervisors; staff do not need a list of every admin.
   const { data, error } = await svc
-    .from('users' as never)
-    .select('id, name')
-    .in('role', ['support_admin', 'ops_admin', 'master_admin'])
-  
+    .from('hub_staff' as never)
+    .select('user_id, users(name)')
+    .eq('hub_id', hubId)
+    .eq('active', true)
+    .eq('is_supervisor', true) as { data: { user_id: string; users: { name: string } | null }[] | null; error: { message: string } | null }
+
   if (error) return { error: error.message }
-  return { supervisors: data as { id: string; name: string }[] }
+  return { supervisors: (data ?? []).map(r => ({ id: r.user_id, name: r.users?.name ?? 'Supervisor' })) }
 }
 
 export async function processSupervisorIdOverrideAction(
@@ -2233,7 +2233,7 @@ export async function processSupervisorIdOverrideAction(
   // The account performing this override must itself be a supervisor — a
   // regular staff member cannot authorize on a supervisor's behalf just by
   // knowing/selecting their name.
-  const isSupervisor = await checkIsSupervisor(userId, svc)
+  const isSupervisor = await checkIsSupervisor(userId, hubId, svc)
   if (!isSupervisor) {
     return { error: 'Unauthorized. A supervisor must log in and perform this override themselves.' }
   }
@@ -2277,7 +2277,7 @@ export async function processPhoneDeadPickupOverrideAction(
   // The account performing this override must itself be a supervisor — a
   // regular staff member cannot authorize on a supervisor's behalf just by
   // knowing/selecting their name.
-  const isSupervisor = await checkIsSupervisor(userId, svc)
+  const isSupervisor = await checkIsSupervisor(userId, hubId, svc)
   if (!isSupervisor) {
     return { error: 'Unauthorized. A supervisor must log in and perform this override themselves.' }
   }
@@ -2288,9 +2288,13 @@ export async function processPhoneDeadPickupOverrideAction(
     .from('bookings' as never)
     .select('status')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { status: string } | null }
 
   if (!booking) return { error: 'Booking not found.' }
+  if (!['active_storage', 'overstayed', 'pickup_requested', 'late_fee_pending'].includes(booking.status)) {
+    return { error: `This booking is not in storage (status: ${booking.status}).` }
+  }
 
   // Update status to ready_for_release
   const { error } = await svc
@@ -2554,11 +2558,8 @@ export async function getStaffCashReconciliationAction(): Promise<{
 }> {
   const { svc, userId } = await requireStaff()
 
-  // Query paid cash payments collected by this staff today (local server time date range)
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date()
-  endOfDay.setHours(23, 59, 59, 999)
+  // Paid cash payments collected by this staff member today, Sri Lanka time (the server runs in UTC)
+  const { start: startOfDay, end: endOfDay } = colomboDayRange()
 
   const { data: payments, error } = await svc
     .from('payments' as never)
@@ -2604,6 +2605,7 @@ export async function updateBookingBagsAction(
     .from('bookings' as never)
     .select('hub_id, start_time, end_time, total_price')
     .eq('id', bookingId)
+    .eq('hub_id', hubId)
     .single() as { data: { hub_id: string; start_time: string; end_time: string; total_price: number } | null }
 
   if (!booking || booking.hub_id !== hubId) return { error: 'Booking not found at your hub.' }
@@ -2736,16 +2738,21 @@ export async function sendPickupOTPAction(
     return { error: 'No verified phone number found on the customer profile.' }
   }
 
-  // Generate 4-digit OTP
-  const crypto = await import('crypto')
-  const otp = crypto.randomInt(1000, 10000).toString()
+  // Each send costs an SMS: cap it per booking and per staff member.
+  if (!(await hitRateLimit(`pickup-otp-send:booking:${bookingId}`, 3, 10 * 60_000)).allowed
+    || !(await hitRateLimit(`pickup-otp-send:staff:${userId}`, 30, 60 * 60_000)).allowed) {
+    return { error: 'Too many codes requested. Please wait a few minutes.' }
+  }
+
+  // 6-digit code, stored only as a keyed hash tied to this booking.
+  const otp = generatePickupOtp()
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 min
 
   // Save to booking
   const { error: updateError } = await svc
     .from('bookings' as never)
     .update({
-      pickup_otp: otp,
+      pickup_otp: hashPickupOtp(otp, bookingId),
       pickup_otp_expires_at: expiresAt.toISOString(),
       pickup_otp_verified_at: null // Reset verification state if re-sending
     })
@@ -2759,7 +2766,7 @@ export async function sendPickupOTPAction(
   try {
     await sendSMS(
       phone,
-      `Luggo: Your pickup verification code for ${hubName} is: ${otp}. Valid for 10 minutes. Do not share this code. 🧳`
+      `Luggo: Your pickup verification code for ${hubName} is: ${otp}. Valid for 10 minutes. Only tell it to hub staff when you collect your bags.`
     )
   } catch (err) {
     console.error('Failed to send SMS OTP:', err)
@@ -2810,7 +2817,12 @@ export async function verifyPickupOTPAction(
     return { error: 'OTP has expired. Please trigger code resend.' }
   }
 
-  if (booking.pickup_otp !== cleanOtp) {
+  // Five wrong guesses per booking in ten minutes, then wait for a new code.
+  if (!(await hitRateLimit(`pickup-otp-verify:booking:${bookingId}`, 5, 10 * 60_000)).allowed) {
+    return { error: 'Too many wrong codes. Send a new code and try again in a few minutes.' }
+  }
+
+  if (!pickupOtpMatches(booking.pickup_otp, cleanOtp, bookingId)) {
     return { error: 'Incorrect OTP code.' }
   }
 

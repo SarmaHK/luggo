@@ -1,7 +1,6 @@
-import { redirect } from 'next/navigation'
 import { Link } from '@/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/admin/guard'
+import { createServiceClient } from '@/lib/supabase/service'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { PartnerApplicationActions } from '@/components/admin/PartnerApplicationActions'
 import { PartnerInviteForm } from '@/components/admin/PartnerInviteForm'
@@ -54,11 +53,9 @@ function inviteState(invite: Invite): 'Used' | 'Expired' | 'Open' {
 
 export default async function AdminPartnersPage(props: { searchParams: Promise<{ status?: string }> }) {
   const searchParams = await props.searchParams
-  const { svc, userId, role, error } = await requireAdmin()
-  if (error || !svc) redirect('/admin/login')
-
-  const supabase = await createClient()
-  const { data: profile } = await supabase.from('users').select('name').eq('id', userId!).single() as { data: { name: string } | null }
+  // Role is verified from the database inside the shared context before the service client is used.
+  const { profile } = await getAdminPageContext()
+  const svc = createServiceClient()
 
   const status = STATUS_FILTERS.some(f => f.value === searchParams.status) ? searchParams.status! : 'new'
 
@@ -77,7 +74,7 @@ export default async function AdminPartnersPage(props: { searchParams: Promise<{
     .limit(10) as { data: Invite[] | null }
 
   return (
-    <AdminShell userName={profile?.name ?? '—'} userRole={role ?? 'admin'}>
+    <AdminShell userName={profile?.name ?? '—'} userRole={profile?.role ?? 'admin'}>
       <div className="px-6 py-8 max-w-5xl mx-auto">
         <h1 className="text-2xl font-extrabold text-ocean-900 mb-1">Partners</h1>
         <p className="text-sm text-gray-500 mb-6">Applications from <span className="font-mono">/partners</span> and the links that bring them in.</p>

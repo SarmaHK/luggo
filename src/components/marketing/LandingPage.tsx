@@ -217,7 +217,7 @@ function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
               {t('vettedNetwork')}
             </motion.div>
 
-            <h1 className="text-[2.25rem] sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-5 min-h-[140px] sm:min-h-0">
+            <h1 className={`text-[2.25rem] sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-5 ${cities.length ? 'min-h-[140px] sm:min-h-0' : ''}`}>
               {cities.length === 0 ? t('title') : <>
               {t('titleBefore')}
               <span className="relative inline-block mx-2">
@@ -244,7 +244,7 @@ function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
               {t('subtitle')}
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-2">
               <Link href={noLiveHubs ? '/partners' : '/dashboard'}
                 className="flex items-center justify-center gap-2 bg-brand text-white font-bold px-8 py-4 rounded-2xl hover:bg-brand/90 active:scale-95 transition-all text-base shadow-xl shadow-brand/20">
                 {noLiveHubs ? tp('bandCta') : t('findStorage')} <ArrowRight size={18} />
@@ -253,14 +253,6 @@ function HeroSection({ liveCities }: { liveCities: MarketingCity[] }) {
                 className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 text-white font-bold px-8 py-4 rounded-2xl hover:bg-white/15 transition-all text-base">
                 {t('howItWorks')} <ChevronDown size={16} />
               </a>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="hidden sm:flex flex-wrap gap-2.5 justify-center lg:justify-start opacity-70">
-              {[t('chips.noAccount'), t('chips.seals'), t('chips.protection', { amount: GUARANTEE_LIMIT_LABEL })].map(chip => (
-                <span key={chip} className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-full">
-                  <Check size={12} className="text-emerald-400" strokeWidth={3} /> {chip}
-                </span>
-              ))}
             </motion.div>
           </motion.div>
 
@@ -343,7 +335,7 @@ function HowItWorksSection() {
   function updateArrows() {
     const el = scrollRef.current
     if (!el) return
-    setCanLeft(el.scrollLeft > 10)
+    setCanLeft(el.scrollLeft > 40)
     setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10)
   }
 

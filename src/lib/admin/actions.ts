@@ -108,6 +108,12 @@ export async function toggleHubActive(
     .eq('id', hubId)
 
   if (error) return { error: 'Failed to update hub' }
+
+  // An admin decision overrides any pause by hub staff. Best effort: the column only exists
+  // after supabase/staff_hardening_migration.sql, so an error here is ignored.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('hubs') as any).update({ staff_paused: false }).eq('id', hubId)
+
   revalidatePath('/admin/hubs')
   return {}
 }

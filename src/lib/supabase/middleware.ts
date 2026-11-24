@@ -23,9 +23,17 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // The session token is verified locally against the project's public signing keys, so this
+  // adds no network round trip to Supabase. (getUser() made one on every request.) Access to
+  // staff and admin areas is still decided by the role stored in the database, below.
+  let userId: string | null = null
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+  userId = claimsData?.claims?.sub ?? null
+  if (!userId && claimsError) {
+    // Could not verify locally: ask the auth server instead.
+    const { data: { user } } = await supabase.auth.getUser()
+    userId = user?.id ?? null
+  }
 
   const { pathname } = request.nextUrl
 
@@ -53,7 +61,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
   // Protected routes: /booking (view existing), /pickup, /profile, /bookings (order history)
   const customerProtected = ['/booking', '/pickup', '/profile', '/bookings', '/notifications', '/reset-password']
   if (customerProtected.some(p => checkPathname === p || checkPathname.startsWith(`${p}/`))) {
-    if (!user) {
+    if (!userId) {
       const locale = localeMatch ? localeMatch[1] : 'en'
       return loginRedirect(`/${locale}/login`, `${pathname}${request.nextUrl.search}`)
     }
@@ -61,14 +69,14 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
   // Protect staff routes
   if (checkPathname.startsWith('/staff') && checkPathname !== '/staff/login') {
-    if (!user) {
+    if (!userId) {
       const locale = localeMatch ? localeMatch[1] : 'en'
       return loginRedirect(`/${locale}/staff/login`)
     }
     const { data: profile } = await supabase
       .from('users')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single() as { data: { role: UserRole } | null; error: unknown }
     if (!profile || profile.role !== 'hub_staff') {
       const locale = localeMatch ? localeMatch[1] : 'en'
@@ -78,14 +86,14 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
   // Protect admin routes
   if (checkPathname.startsWith('/admin') && checkPathname !== '/admin/login') {
-    if (!user) {
+    if (!userId) {
       const locale = localeMatch ? localeMatch[1] : 'en'
       return loginRedirect(`/${locale}/admin/login`)
     }
     const { data: profile } = await supabase
       .from('users')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single() as { data: { role: UserRole } | null; error: unknown }
     const adminRoles: UserRole[] = ['support_admin', 'ops_admin', 'master_admin']
     if (!profile || !adminRoles.includes(profile.role)) {

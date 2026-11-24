@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAdminPageContext } from '@/lib/admin/pageContext'
 import { requireAdmin } from '@/lib/admin/guard'
 import { AdminShell } from '@/components/admin/AdminShell'
 import { StaffForm } from '@/components/admin/StaffForm'
-import { type UserRole } from '@/types/database'
 import { format } from 'date-fns'
 import { UserCheck, UserX, Building2 } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -13,6 +12,7 @@ export const metadata: Metadata = { title: 'Staff — Admin' }
 type StaffRow = {
   id: string
   active: boolean
+  is_supervisor?: boolean
   created_at: string
   users: { id: string; name: string; email: string; phone: string | null } | null
   hubs: { id: string; name: string; alias: string } | null
@@ -26,39 +26,49 @@ async function toggleStaffAction(staffId: string, active: boolean) {
   redirect('/admin/staff')
 }
 
+// Supervisors can approve overrides at their hub (late-fee waiver, ID or phone-dead override).
+async function toggleSupervisorAction(staffId: string, isSupervisor: boolean) {
+  'use server'
+  const { svc, error } = await requireAdmin()
+  if (error || !svc) redirect('/admin/login')
+  await svc.from('hub_staff' as never).update({ is_supervisor: isSupervisor }).eq('id', staffId)
+  redirect('/admin/staff')
+}
+
 export default async function AdminStaffPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
+  const { supabase, profile } = await getAdminPageContext()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single() as { data: { name: string; role: UserRole } | null; error: unknown }
+  // Hubs for the form dropdown and staff with user + hub info, fetched together
+  const [{ data: hubs }, staffResult] = await Promise.all([
+    supabase
+      .from('hubs')
+      .select('id, name, alias')
+      .eq('active', true)
+      .order('name') as unknown as Promise<{ data: { id: string; name: string; alias: string }[] | null; error: unknown }>,
+    supabase
+      .from('hub_staff')
+      .select(`
+        id, active, is_supervisor, created_at,
+        users ( id, name, email, phone ),
+        hubs ( id, name, alias )
+      `)
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: StaffRow[] | null; error: unknown }>,
+  ])
 
-  // Get all hubs for the form dropdown
-  const { data: hubs } = await supabase
-    .from('hubs')
-    .select('id, name, alias')
-    .eq('active', true)
-    .order('name') as {
-      data: { id: string; name: string; alias: string }[] | null
-      error: unknown
-    }
-
-  // Get all staff with user + hub info
-  const { data: staffList } = await supabase
-    .from('hub_staff')
-    .select(`
-      id, active, created_at,
-      users ( id, name, email, phone ),
-      hubs ( id, name, alias )
-    `)
-    .order('created_at', { ascending: false }) as {
-      data: StaffRow[] | null
-      error: unknown
-    }
+  // Before supabase/staff_hardening_migration.sql is applied the is_supervisor column does not exist;
+  // list staff without it rather than showing an empty page.
+  let staffList = staffResult.data
+  if (staffResult.error) {
+    const fallback = await supabase
+      .from('hub_staff')
+      .select(`
+        id, active, created_at,
+        users ( id, name, email, phone ),
+        hubs ( id, name, alias )
+      `)
+      .order('created_at', { ascending: false }) as unknown as { data: StaffRow[] | null }
+    staffList = fallback.data
+  }
 
   const activeStaff   = staffList?.filter(s => s.active) ?? []
   const inactiveStaff = staffList?.filter(s => !s.active) ?? []
@@ -87,7 +97,7 @@ export default async function AdminStaffPage() {
               <UserCheck size={16} className="text-green-500" />
               <h2 className="font-bold text-ocean-900">Active Staff ({activeStaff.length})</h2>
             </div>
-            <StaffTable rows={activeStaff} isActive toggleAction={toggleStaffAction} />
+            <StaffTable rows={activeStaff} isActive toggleAction={toggleStaffAction} supervisorAction={toggleSupervisorAction} />
           </div>
         )}
 
@@ -118,10 +128,12 @@ function StaffTable({
   rows,
   isActive,
   toggleAction,
+  supervisorAction,
 }: {
   rows: StaffRow[]
   isActive: boolean
   toggleAction: (staffId: string, active: boolean) => Promise<void>
+  supervisorAction?: (staffId: string, isSupervisor: boolean) => Promise<void>
 }) {
   return (
     <div className="overflow-x-auto">
@@ -140,6 +152,7 @@ function StaffTable({
             <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
               <td className="px-5 py-3 font-medium text-ocean-900">
                 {s.users?.name ?? '—'}
+                {s.is_supervisor && <span className="ml-2 text-[11px] font-bold uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Supervisor</span>}
               </td>
               <td className="px-5 py-3 text-gray-500">{s.users?.email ?? '—'}</td>
               <td className="px-5 py-3">
@@ -152,8 +165,15 @@ function StaffTable({
               <td className="px-5 py-3 text-xs text-gray-500">
                 {format(new Date(s.created_at), 'dd MMM yyyy')}
               </td>
-              <td className="px-5 py-3 text-right">
-                <form action={toggleAction.bind(null, s.id, !isActive)}>
+              <td className="px-5 py-3 text-right whitespace-nowrap">
+                {isActive && supervisorAction && (
+                  <form action={supervisorAction.bind(null, s.id, !s.is_supervisor)} className="inline-block mr-2">
+                    <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100">
+                      {s.is_supervisor ? 'Remove supervisor' : 'Make supervisor'}
+                    </button>
+                  </form>
+                )}
+                <form action={toggleAction.bind(null, s.id, !isActive)} className="inline-block">
                   <button
                     type="submit"
                     className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${

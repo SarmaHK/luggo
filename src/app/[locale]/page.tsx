@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUserId } from '@/lib/supabase/session'
+import { getPublicHomeData } from '@/lib/publicData'
 import LandingPage from '@/components/marketing/LandingPage'
 // import MaintenancePage from '@/components/marketing/MaintenancePage' // Available for service stopped / maintenance mode
-import { type UserRole, type BagType } from '@/types/database'
+import { type UserRole } from '@/types/database'
 import { CONTACT_EMAIL, SOCIAL_LINKS } from '@/lib/public-company'
 import { localizedAlternates } from '@/lib/i18n/seo'
 import { siteUrl } from '@/lib/site-url'
 import { DEFAULT_BAG_RATES, type BagRates } from '@/lib/utils/pricing'
 import { liveCitiesFromHubs } from '@/lib/utils/live-cities'
-import { LISTINGS_HIDDEN } from '@/lib/booking-pause'
 import { getTranslations } from 'next-intl/server'
 import { GUARANTEE_LIMIT_LABEL } from '@/lib/utils/guarantee'
 
@@ -41,20 +42,16 @@ export default async function RootPage(
   } = params;
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userId = await getSessionUserId(supabase)
 
-  if (!user) {
+  if (!userId) {
     // Cheapest rate per bag type across all active hubs, so the marketing
     // page can honestly say "from LKR X/hr" now that rates vary per hub.
-    const { data: rateRows } = await supabase
-      .from('hub_bag_rates' as never)
-      .select('bag_type, hourly_rate, daily_cap, hubs!inner(active)')
-      .eq('hubs.active', true) as {
-        data: { bag_type: BagType; hourly_rate: number; daily_cap: number }[] | null
-      }
+    // Shared by all visitors, so it comes from a short-lived cache (see lib/publicData).
+    const { rateRows, liveHubs } = await getPublicHomeData()
 
     const fromRates: BagRates = { ...DEFAULT_BAG_RATES }
-    for (const row of rateRows ?? []) {
+    for (const row of rateRows) {
       const current = fromRates[row.bag_type]
       if (Number(row.hourly_rate) < current.hourlyRate) {
         fromRates[row.bag_type] = { hourlyRate: Number(row.hourly_rate), dailyCap: Number(row.daily_cap) }
@@ -63,14 +60,7 @@ export default async function RootPage(
 
     // Cities with a live partner hub. Hubs are hidden publicly while LISTINGS_HIDDEN is on,
     // so no city is shown as live then.
-    let liveCities: ReturnType<typeof liveCitiesFromHubs> = []
-    if (!LISTINGS_HIDDEN) {
-      const { data: liveHubs } = await supabase
-        .from('hubs')
-        .select('name, alias, location, address')
-        .eq('active', true)
-      liveCities = liveCitiesFromHubs(liveHubs ?? [])
-    }
+    const liveCities = liveCitiesFromHubs(liveHubs)
 
     const tFaq = await getTranslations({ locale, namespace: 'Faq' })
     const tMeta = await getTranslations({ locale, namespace: 'Meta' })
@@ -145,7 +135,7 @@ export default async function RootPage(
   const { data: profile } = await supabase
     .from('users')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single() as { data: { role: UserRole } | null; error: unknown }
 
   if (!profile) redirect('/login')
