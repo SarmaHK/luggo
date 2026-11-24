@@ -70,7 +70,7 @@ export function PartnerForm({ locale, refCode, inviteToken, initialBusinessName 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-gray-200 bg-gray-50 px-4 pt-5 pb-0 sm:p-8 space-y-6">
+    <form data-clarity-mask="true" onSubmit={handleSubmit} className="rounded-3xl border border-gray-200 bg-gray-50 px-4 pt-5 pb-0 sm:p-8 space-y-6">
       <fieldset className="space-y-4 min-w-0">
         <legend className={legendClass}>{t('groups.business')}</legend>
         <Input label={t('fields.businessName')} required maxLength={120} autoComplete="organization" enterKeyHint="next" value={businessName} onChange={e => setBusinessName(e.target.value)} />
