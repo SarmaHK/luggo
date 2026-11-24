@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node --require ./tests/register.cjs --test --experimental-test-isolation=none tests/*.test.cjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup:hooks": "node scripts/hooks/setup-hooks.js",
+    "secrets:scan": "gitleaks detect --redact --no-banner"
   },
   "engines": {
     "node": "22.x"
